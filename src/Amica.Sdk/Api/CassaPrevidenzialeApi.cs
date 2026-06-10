@@ -1,0 +1,453 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Net;
+using System.Net.Mime;
+using Amica.Sdk.Client;
+using Amica.Sdk.Client.Auth;
+using Amica.Sdk.Model;
+
+namespace Amica.Sdk.Api
+{
+
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public interface ICassaPrevidenzialeApiSync : IApiAccessor
+    {
+        #region Synchronous Operations
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi.
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>List&lt;CassaPrevidenziale&gt;</returns>
+        List<CassaPrevidenziale> ApiVversionCompanyIdTabelleCassaPrevidenzialeGet(string companyId, string version, int operationIndex = 0);
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of List&lt;CassaPrevidenziale&gt;</returns>
+        ApiResponse<List<CassaPrevidenziale>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo(string companyId, string version, int operationIndex = 0);
+        #endregion Synchronous Operations
+    }
+
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public interface ICassaPrevidenzialeApiAsync : IApiAccessor
+    {
+        #region Asynchronous Operations
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;CassaPrevidenziale&gt;</returns>
+        System.Threading.Tasks.Task<List<CassaPrevidenziale>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;CassaPrevidenziale&gt;)</returns>
+        System.Threading.Tasks.Task<ApiResponse<List<CassaPrevidenziale>>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        #endregion Asynchronous Operations
+    }
+
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public interface ICassaPrevidenzialeApi : ICassaPrevidenzialeApiSync, ICassaPrevidenzialeApiAsync
+    {
+
+    }
+
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public partial class CassaPrevidenzialeApi : ICassaPrevidenzialeApi
+    {
+        private Amica.Sdk.Client.ExceptionFactory _exceptionFactory = (name, response) => null;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CassaPrevidenzialeApi"/> class.
+        /// </summary>
+        /// <returns></returns>
+        public CassaPrevidenzialeApi() : this((string)null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CassaPrevidenzialeApi"/> class.
+        /// </summary>
+        /// <returns></returns>
+        public CassaPrevidenzialeApi(string basePath)
+        {
+            this.Configuration = Amica.Sdk.Client.Configuration.MergeConfigurations(
+                Amica.Sdk.Client.GlobalConfiguration.Instance,
+                new Amica.Sdk.Client.Configuration { BasePath = basePath }
+            );
+            this.Client = new Amica.Sdk.Client.ApiClient(this.Configuration.BasePath);
+            this.AsynchronousClient = new Amica.Sdk.Client.ApiClient(this.Configuration.BasePath);
+            this.ExceptionFactory = Amica.Sdk.Client.Configuration.DefaultExceptionFactory;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CassaPrevidenzialeApi"/> class
+        /// using Configuration object
+        /// </summary>
+        /// <param name="configuration">An instance of Configuration</param>
+        /// <returns></returns>
+        public CassaPrevidenzialeApi(Amica.Sdk.Client.Configuration configuration)
+        {
+            if (configuration == null) throw new ArgumentNullException("configuration");
+
+            this.Configuration = Amica.Sdk.Client.Configuration.MergeConfigurations(
+                Amica.Sdk.Client.GlobalConfiguration.Instance,
+                configuration
+            );
+            this.Client = new Amica.Sdk.Client.ApiClient(this.Configuration.BasePath);
+            this.AsynchronousClient = new Amica.Sdk.Client.ApiClient(this.Configuration.BasePath);
+            ExceptionFactory = Amica.Sdk.Client.Configuration.DefaultExceptionFactory;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CassaPrevidenzialeApi"/> class
+        /// using a Configuration object and client instance.
+        /// </summary>
+        /// <param name="client">The client interface for synchronous API access.</param>
+        /// <param name="asyncClient">The client interface for asynchronous API access.</param>
+        /// <param name="configuration">The configuration object.</param>
+        public CassaPrevidenzialeApi(Amica.Sdk.Client.ISynchronousClient client, Amica.Sdk.Client.IAsynchronousClient asyncClient, Amica.Sdk.Client.IReadableConfiguration configuration)
+        {
+            if (client == null) throw new ArgumentNullException("client");
+            if (asyncClient == null) throw new ArgumentNullException("asyncClient");
+            if (configuration == null) throw new ArgumentNullException("configuration");
+
+            this.Client = client;
+            this.AsynchronousClient = asyncClient;
+            this.Configuration = configuration;
+            this.ExceptionFactory = Amica.Sdk.Client.Configuration.DefaultExceptionFactory;
+        }
+
+        /// <summary>
+        /// The client for accessing this underlying API asynchronously.
+        /// </summary>
+        public Amica.Sdk.Client.IAsynchronousClient AsynchronousClient { get; set; }
+
+        /// <summary>
+        /// The client for accessing this underlying API synchronously.
+        /// </summary>
+        public Amica.Sdk.Client.ISynchronousClient Client { get; set; }
+
+        /// <summary>
+        /// Gets the base path of the API client.
+        /// </summary>
+        /// <value>The base path</value>
+        public string GetBasePath()
+        {
+            return this.Configuration.BasePath;
+        }
+
+        /// <summary>
+        /// Gets or sets the configuration object
+        /// </summary>
+        /// <value>An instance of the Configuration</value>
+        public Amica.Sdk.Client.IReadableConfiguration Configuration { get; set; }
+
+        /// <summary>
+        /// Provides a factory method hook for the creation of exceptions.
+        /// </summary>
+        public Amica.Sdk.Client.ExceptionFactory ExceptionFactory
+        {
+            get
+            {
+                if (_exceptionFactory != null && _exceptionFactory.GetInvocationList().Length > 1)
+                {
+                    throw new InvalidOperationException("Multicast delegate for ExceptionFactory is unsupported.");
+                }
+                return _exceptionFactory;
+            }
+            set { _exceptionFactory = value; }
+        }
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>List&lt;CassaPrevidenziale&gt;</returns>
+        public List<CassaPrevidenziale> ApiVversionCompanyIdTabelleCassaPrevidenzialeGet(string companyId, string version, int operationIndex = 0)
+        {
+            Amica.Sdk.Client.ApiResponse<List<CassaPrevidenziale>> localVarResponse = ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo(companyId, version);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of List&lt;CassaPrevidenziale&gt;</returns>
+        public Amica.Sdk.Client.ApiResponse<List<CassaPrevidenziale>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo(string companyId, string version, int operationIndex = 0)
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling CassaPrevidenzialeApi->ApiVversionCompanyIdTabelleCassaPrevidenzialeGet");
+            }
+
+            // verify the required parameter 'version' is set
+            if (version == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling CassaPrevidenzialeApi->ApiVversionCompanyIdTabelleCassaPrevidenzialeGet");
+            }
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain",
+                "application/json",
+                "text/json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            var localVarMultipartFormData = localVarContentType == "multipart/form-data";
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
+
+            localVarRequestOptions.Operation = "CassaPrevidenzialeApi.ApiVversionCompanyIdTabelleCassaPrevidenzialeGet";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<List<CassaPrevidenziale>>("/api/v{version}/{companyId}/tabelle/CassaPrevidenziale", localVarRequestOptions, this.Configuration);
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdTabelleCassaPrevidenzialeGet", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;CassaPrevidenziale&gt;</returns>
+        public async System.Threading.Tasks.Task<List<CassaPrevidenziale>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            Amica.Sdk.Client.ApiResponse<List<CassaPrevidenziale>> localVarResponse = await ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfoAsync(companyId, version, operationIndex, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Restituisce il contenuto della tabella come lista di elementi. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="version"></param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;CassaPrevidenziale&gt;)</returns>
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<CassaPrevidenziale>>> ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling CassaPrevidenzialeApi->ApiVversionCompanyIdTabelleCassaPrevidenzialeGet");
+            }
+
+            // verify the required parameter 'version' is set
+            if (version == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling CassaPrevidenzialeApi->ApiVversionCompanyIdTabelleCassaPrevidenzialeGet");
+            }
+
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain",
+                "application/json",
+                "text/json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
+
+            localVarRequestOptions.Operation = "CassaPrevidenzialeApi.ApiVversionCompanyIdTabelleCassaPrevidenzialeGet";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<CassaPrevidenziale>>("/api/v{version}/{companyId}/tabelle/CassaPrevidenziale", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdTabelleCassaPrevidenzialeGet", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+    }
+}

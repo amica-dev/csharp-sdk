@@ -1,0 +1,382 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Riga di registrazione contabile.
+    /// </summary>
+    [DataContract(Name = "RegistrazioneContabileRiga")]
+    public partial class RegistrazioneContabileRiga : IValidatableObject
+    {
+        /// <summary>
+        /// Tipo di conto (piano dei conti).
+        /// </summary>
+        /// <value>Tipo di conto (piano dei conti).</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum TipoContoEnum
+        {
+            /// <summary>
+            /// Enum Contabile for value: Contabile
+            /// </summary>
+            [EnumMember(Value = "Contabile")]
+            Contabile = 1,
+
+            /// <summary>
+            /// Enum PartitarioClienti for value: PartitarioClienti
+            /// </summary>
+            [EnumMember(Value = "PartitarioClienti")]
+            PartitarioClienti = 2,
+
+            /// <summary>
+            /// Enum PartitarioFornitori for value: PartitarioFornitori
+            /// </summary>
+            [EnumMember(Value = "PartitarioFornitori")]
+            PartitarioFornitori = 3,
+
+            /// <summary>
+            /// Enum Bancario for value: Bancario
+            /// </summary>
+            [EnumMember(Value = "Bancario")]
+            Bancario = 4
+        }
+
+
+        /// <summary>
+        /// Tipo di conto (piano dei conti).
+        /// </summary>
+        /// <value>Tipo di conto (piano dei conti).</value>
+        [DataMember(Name = "tipoConto", EmitDefaultValue = false)]
+        public TipoContoEnum? TipoConto { get; set; }
+        /// <summary>
+        /// Sezione del piano dei conti.
+        /// </summary>
+        /// <value>Sezione del piano dei conti.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum SezioneContoEnum
+        {
+            /// <summary>
+            /// Enum Attivit for value: Attività
+            /// </summary>
+            [EnumMember(Value = "Attività")]
+            Attivit = 1,
+
+            /// <summary>
+            /// Enum Passivit for value: Passività
+            /// </summary>
+            [EnumMember(Value = "Passività")]
+            Passivit = 2,
+
+            /// <summary>
+            /// Enum Costi for value: Costi
+            /// </summary>
+            [EnumMember(Value = "Costi")]
+            Costi = 3,
+
+            /// <summary>
+            /// Enum Ricavi for value: Ricavi
+            /// </summary>
+            [EnumMember(Value = "Ricavi")]
+            Ricavi = 4,
+
+            /// <summary>
+            /// Enum Ordine for value: Ordine
+            /// </summary>
+            [EnumMember(Value = "Ordine")]
+            Ordine = 5
+        }
+
+
+        /// <summary>
+        /// Sezione del piano dei conti.
+        /// </summary>
+        /// <value>Sezione del piano dei conti.</value>
+        [DataMember(Name = "sezioneConto", EmitDefaultValue = false)]
+        public SezioneContoEnum? SezioneConto { get; set; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RegistrazioneContabileRiga" /> class.
+        /// </summary>
+        /// <param name="id">Identificativo univoco..</param>
+        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
+        /// <param name="registrazioneContabileId">Identificativo univoco di Amica.RegistrazioneContabile..</param>
+        /// <param name="scadenzaId">Identificativo univoco di Amica.Scadenza..</param>
+        /// <param name="causaleContabileId">Identificativo univoco di &#x60;CausaleContabile&#x60;..</param>
+        /// <param name="emissioneId">Identificativo del Amica.Documento di riferimento..</param>
+        /// <param name="tipoConto">Tipo di conto (piano dei conti)..</param>
+        /// <param name="sezioneConto">Sezione del piano dei conti..</param>
+        /// <param name="partitaAnno">Anno della partita aperta..</param>
+        /// <param name="partitaNumero">Numero della partita aperta..</param>
+        /// <param name="conto">Numero di conto (ad es. \&quot;100.20\&quot;)..</param>
+        /// <param name="contoRaw">Numero di conto, in formato grezzo (ad es. \&quot;  100   20\&quot;)..</param>
+        /// <param name="descrizioneConto">Descrizione..</param>
+        /// <param name="dare">Importo in dare..</param>
+        /// <param name="avere">Importo in avere..</param>
+        /// <param name="note">Note..</param>
+        public RegistrazioneContabileRiga(int id = default(int), int concurrencyToken = default(int), int registrazioneContabileId = default(int), int? scadenzaId = default(int?), int? causaleContabileId = default(int?), int? emissioneId = default(int?), TipoContoEnum? tipoConto = default(TipoContoEnum?), SezioneContoEnum? sezioneConto = default(SezioneContoEnum?), int partitaAnno = default(int), int partitaNumero = default(int), string conto = default(string), string contoRaw = default(string), string descrizioneConto = default(string), double dare = default(double), double avere = default(double), string note = default(string))
+        {
+            this.Id = id;
+            this.ConcurrencyToken = concurrencyToken;
+            this.RegistrazioneContabileId = registrazioneContabileId;
+            this.ScadenzaId = scadenzaId;
+            this.CausaleContabileId = causaleContabileId;
+            this.EmissioneId = emissioneId;
+            this.TipoConto = tipoConto;
+            this.SezioneConto = sezioneConto;
+            this.PartitaAnno = partitaAnno;
+            this.PartitaNumero = partitaNumero;
+            this.Conto = conto;
+            this.ContoRaw = contoRaw;
+            this.DescrizioneConto = descrizioneConto;
+            this.Dare = dare;
+            this.Avere = avere;
+            this.Note = note;
+        }
+
+        /// <summary>
+        /// Identificativo univoco.
+        /// </summary>
+        /// <value>Identificativo univoco.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "id", EmitDefaultValue = false)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// </summary>
+        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
+        /*
+        <example>12345</example>
+        */
+        [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
+        public int ConcurrencyToken { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.RegistrazioneContabile.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.RegistrazioneContabile.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "registrazioneContabileId", EmitDefaultValue = false)]
+        public int RegistrazioneContabileId { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Scadenza.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Scadenza.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "scadenzaId", EmitDefaultValue = true)]
+        public int? ScadenzaId { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di &#x60;CausaleContabile&#x60;.
+        /// </summary>
+        /// <value>Identificativo univoco di &#x60;CausaleContabile&#x60;.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "causaleContabileId", EmitDefaultValue = true)]
+        public int? CausaleContabileId { get; set; }
+
+        /// <summary>
+        /// Identificativo del Amica.Documento di riferimento.
+        /// </summary>
+        /// <value>Identificativo del Amica.Documento di riferimento.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "emissioneId", EmitDefaultValue = true)]
+        public int? EmissioneId { get; set; }
+
+        /// <summary>
+        /// Anno della partita aperta.
+        /// </summary>
+        /// <value>Anno della partita aperta.</value>
+        /*
+        <example>2026</example>
+        */
+        [DataMember(Name = "partitaAnno", EmitDefaultValue = false)]
+        public int PartitaAnno { get; set; }
+
+        /// <summary>
+        /// Numero della partita aperta.
+        /// </summary>
+        /// <value>Numero della partita aperta.</value>
+        /*
+        <example>42</example>
+        */
+        [DataMember(Name = "partitaNumero", EmitDefaultValue = false)]
+        public int PartitaNumero { get; set; }
+
+        /// <summary>
+        /// Numero di conto (ad es. \&quot;100.20\&quot;).
+        /// </summary>
+        /// <value>Numero di conto (ad es. \&quot;100.20\&quot;).</value>
+        /*
+        <example>100.20</example>
+        */
+        [DataMember(Name = "conto", EmitDefaultValue = true)]
+        public string Conto { get; set; }
+
+        /// <summary>
+        /// Numero di conto, in formato grezzo (ad es. \&quot;  100   20\&quot;).
+        /// </summary>
+        /// <value>Numero di conto, in formato grezzo (ad es. \&quot;  100   20\&quot;).</value>
+        /*
+        <example>  100   20</example>
+        */
+        [DataMember(Name = "contoRaw", EmitDefaultValue = true)]
+        public string ContoRaw { get; set; }
+
+        /// <summary>
+        /// Descrizione.
+        /// </summary>
+        /// <value>Descrizione.</value>
+        /*
+        <example>Merci c/vendite</example>
+        */
+        [DataMember(Name = "descrizioneConto", EmitDefaultValue = true)]
+        public string DescrizioneConto { get; set; }
+
+        /// <summary>
+        /// Importo in dare.
+        /// </summary>
+        /// <value>Importo in dare.</value>
+        /*
+        <example>1250.0</example>
+        */
+        [DataMember(Name = "dare", EmitDefaultValue = false)]
+        public double Dare { get; set; }
+
+        /// <summary>
+        /// Importo in avere.
+        /// </summary>
+        /// <value>Importo in avere.</value>
+        /*
+        <example>1250.0</example>
+        */
+        [DataMember(Name = "avere", EmitDefaultValue = false)]
+        public double Avere { get; set; }
+
+        /// <summary>
+        /// Note.
+        /// </summary>
+        /// <value>Note.</value>
+        /*
+        <example>Registrazione fattura n. 42</example>
+        */
+        [DataMember(Name = "note", EmitDefaultValue = true)]
+        public string Note { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class RegistrazioneContabileRiga {\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  ConcurrencyToken: ").Append(ConcurrencyToken).Append("\n");
+            sb.Append("  RegistrazioneContabileId: ").Append(RegistrazioneContabileId).Append("\n");
+            sb.Append("  ScadenzaId: ").Append(ScadenzaId).Append("\n");
+            sb.Append("  CausaleContabileId: ").Append(CausaleContabileId).Append("\n");
+            sb.Append("  EmissioneId: ").Append(EmissioneId).Append("\n");
+            sb.Append("  TipoConto: ").Append(TipoConto).Append("\n");
+            sb.Append("  SezioneConto: ").Append(SezioneConto).Append("\n");
+            sb.Append("  PartitaAnno: ").Append(PartitaAnno).Append("\n");
+            sb.Append("  PartitaNumero: ").Append(PartitaNumero).Append("\n");
+            sb.Append("  Conto: ").Append(Conto).Append("\n");
+            sb.Append("  ContoRaw: ").Append(ContoRaw).Append("\n");
+            sb.Append("  DescrizioneConto: ").Append(DescrizioneConto).Append("\n");
+            sb.Append("  Dare: ").Append(Dare).Append("\n");
+            sb.Append("  Avere: ").Append(Avere).Append("\n");
+            sb.Append("  Note: ").Append(Note).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            // Conto (string) maxLength
+            if (this.Conto != null && this.Conto.Length > 25)
+            {
+                yield return new ValidationResult("Invalid value for Conto, length must be less than 25.", new [] { "Conto" });
+            }
+
+            // Conto (string) minLength
+            if (this.Conto != null && this.Conto.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Conto, length must be greater than 0.", new [] { "Conto" });
+            }
+
+            // ContoRaw (string) maxLength
+            if (this.ContoRaw != null && this.ContoRaw.Length > 25)
+            {
+                yield return new ValidationResult("Invalid value for ContoRaw, length must be less than 25.", new [] { "ContoRaw" });
+            }
+
+            // ContoRaw (string) minLength
+            if (this.ContoRaw != null && this.ContoRaw.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for ContoRaw, length must be greater than 0.", new [] { "ContoRaw" });
+            }
+
+            // DescrizioneConto (string) maxLength
+            if (this.DescrizioneConto != null && this.DescrizioneConto.Length > 121)
+            {
+                yield return new ValidationResult("Invalid value for DescrizioneConto, length must be less than 121.", new [] { "DescrizioneConto" });
+            }
+
+            // DescrizioneConto (string) minLength
+            if (this.DescrizioneConto != null && this.DescrizioneConto.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for DescrizioneConto, length must be greater than 0.", new [] { "DescrizioneConto" });
+            }
+
+            yield break;
+        }
+    }
+
+}

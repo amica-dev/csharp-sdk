@@ -1,0 +1,292 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Restituito dal metodo M:Amica.DocumentoService.Compute(Amica.DocumentoComputeData,Amica.RequestSettings,System.Boolean) di &#x60;DocumentoService&#x60;.
+    /// </summary>
+    [DataContract(Name = "DocumentoComputeResult")]
+    public partial class DocumentoComputeResult : IValidatableObject
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DocumentoComputeResult" /> class.
+        /// </summary>
+        /// <param name="totaleMerce">Importo della merce..</param>
+        /// <param name="totaleMerceScontata">Importo della merce scontata..</param>
+        /// <param name="totaleImponibile">Totale imponibile, considerando tutte le causali IVA coinvolte..</param>
+        /// <param name="totaleSpeseEsenti">Totale delle spese esenti da IVA..</param>
+        /// <param name="totaleSpeseNonEsenti">Totale delle spese non esenti da IVA..</param>
+        /// <param name="totaleSpese">Totale delle spese esenti e non esenti..</param>
+        /// <param name="totaleRitenuta">Importo della ritenuta di acconto..</param>
+        /// <param name="totaleCassaPrevidenziale">Importo della cassa previdenziale..</param>
+        /// <param name="enasarcoImporto">Importo Enasarco..</param>
+        /// <param name="totaleEsente">Importi esenti da IVA..</param>
+        /// <param name="totaleImposta">Imposta IVA..</param>
+        /// <param name="totaleSplitPayment">Importo dello split payment..</param>
+        /// <param name="totaleAbbuoni">Importo degli abbuoni..</param>
+        /// <param name="totaleDocumento">Importo totale del documento..</param>
+        /// <param name="bonusFiscaleImporto">Importo del bonus fiscale..</param>
+        /// <param name="nettoAPagare">Netto a pagare..</param>
+        /// <param name="riepiloghiIva">Riepiloghi IVA..</param>
+        public DocumentoComputeResult(double totaleMerce = default(double), double totaleMerceScontata = default(double), double totaleImponibile = default(double), double totaleSpeseEsenti = default(double), double totaleSpeseNonEsenti = default(double), double totaleSpese = default(double), double totaleRitenuta = default(double), double totaleCassaPrevidenziale = default(double), double enasarcoImporto = default(double), double totaleEsente = default(double), double totaleImposta = default(double), double totaleSplitPayment = default(double), double totaleAbbuoni = default(double), double totaleDocumento = default(double), double bonusFiscaleImporto = default(double), double nettoAPagare = default(double), List<DocumentoComputeResultRiepilogoIva> riepiloghiIva = default(List<DocumentoComputeResultRiepilogoIva>))
+        {
+            this.TotaleMerce = totaleMerce;
+            this.TotaleMerceScontata = totaleMerceScontata;
+            this.TotaleImponibile = totaleImponibile;
+            this.TotaleSpeseEsenti = totaleSpeseEsenti;
+            this.TotaleSpeseNonEsenti = totaleSpeseNonEsenti;
+            this.TotaleSpese = totaleSpese;
+            this.TotaleRitenuta = totaleRitenuta;
+            this.TotaleCassaPrevidenziale = totaleCassaPrevidenziale;
+            this.EnasarcoImporto = enasarcoImporto;
+            this.TotaleEsente = totaleEsente;
+            this.TotaleImposta = totaleImposta;
+            this.TotaleSplitPayment = totaleSplitPayment;
+            this.TotaleAbbuoni = totaleAbbuoni;
+            this.TotaleDocumento = totaleDocumento;
+            this.BonusFiscaleImporto = bonusFiscaleImporto;
+            this.NettoAPagare = nettoAPagare;
+            this.RiepiloghiIva = riepiloghiIva;
+        }
+
+        /// <summary>
+        /// Importo della merce.
+        /// </summary>
+        /// <value>Importo della merce.</value>
+        /*
+        <example>1250.0</example>
+        */
+        [DataMember(Name = "totaleMerce", EmitDefaultValue = false)]
+        public double TotaleMerce { get; set; }
+
+        /// <summary>
+        /// Importo della merce scontata.
+        /// </summary>
+        /// <value>Importo della merce scontata.</value>
+        /*
+        <example>1187.5</example>
+        */
+        [DataMember(Name = "totaleMerceScontata", EmitDefaultValue = false)]
+        public double TotaleMerceScontata { get; set; }
+
+        /// <summary>
+        /// Totale imponibile, considerando tutte le causali IVA coinvolte.
+        /// </summary>
+        /// <value>Totale imponibile, considerando tutte le causali IVA coinvolte.</value>
+        /*
+        <example>1187.5</example>
+        */
+        [DataMember(Name = "totaleImponibile", EmitDefaultValue = false)]
+        public double TotaleImponibile { get; set; }
+
+        /// <summary>
+        /// Totale delle spese esenti da IVA.
+        /// </summary>
+        /// <value>Totale delle spese esenti da IVA.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleSpeseEsenti", EmitDefaultValue = false)]
+        public double TotaleSpeseEsenti { get; set; }
+
+        /// <summary>
+        /// Totale delle spese non esenti da IVA.
+        /// </summary>
+        /// <value>Totale delle spese non esenti da IVA.</value>
+        /*
+        <example>15.0</example>
+        */
+        [DataMember(Name = "totaleSpeseNonEsenti", EmitDefaultValue = false)]
+        public double TotaleSpeseNonEsenti { get; set; }
+
+        /// <summary>
+        /// Totale delle spese esenti e non esenti.
+        /// </summary>
+        /// <value>Totale delle spese esenti e non esenti.</value>
+        /*
+        <example>15.0</example>
+        */
+        [DataMember(Name = "totaleSpese", EmitDefaultValue = false)]
+        public double TotaleSpese { get; set; }
+
+        /// <summary>
+        /// Importo della ritenuta di acconto.
+        /// </summary>
+        /// <value>Importo della ritenuta di acconto.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleRitenuta", EmitDefaultValue = false)]
+        public double TotaleRitenuta { get; set; }
+
+        /// <summary>
+        /// Importo della cassa previdenziale.
+        /// </summary>
+        /// <value>Importo della cassa previdenziale.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleCassaPrevidenziale", EmitDefaultValue = false)]
+        public double TotaleCassaPrevidenziale { get; set; }
+
+        /// <summary>
+        /// Importo Enasarco.
+        /// </summary>
+        /// <value>Importo Enasarco.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "enasarcoImporto", EmitDefaultValue = false)]
+        public double EnasarcoImporto { get; set; }
+
+        /// <summary>
+        /// Importi esenti da IVA.
+        /// </summary>
+        /// <value>Importi esenti da IVA.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleEsente", EmitDefaultValue = false)]
+        public double TotaleEsente { get; set; }
+
+        /// <summary>
+        /// Imposta IVA.
+        /// </summary>
+        /// <value>Imposta IVA.</value>
+        /*
+        <example>264.55</example>
+        */
+        [DataMember(Name = "totaleImposta", EmitDefaultValue = false)]
+        public double TotaleImposta { get; set; }
+
+        /// <summary>
+        /// Importo dello split payment.
+        /// </summary>
+        /// <value>Importo dello split payment.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleSplitPayment", EmitDefaultValue = false)]
+        public double TotaleSplitPayment { get; set; }
+
+        /// <summary>
+        /// Importo degli abbuoni.
+        /// </summary>
+        /// <value>Importo degli abbuoni.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleAbbuoni", EmitDefaultValue = false)]
+        public double TotaleAbbuoni { get; set; }
+
+        /// <summary>
+        /// Importo totale del documento.
+        /// </summary>
+        /// <value>Importo totale del documento.</value>
+        /*
+        <example>1467.05</example>
+        */
+        [DataMember(Name = "totaleDocumento", EmitDefaultValue = false)]
+        public double TotaleDocumento { get; set; }
+
+        /// <summary>
+        /// Importo del bonus fiscale.
+        /// </summary>
+        /// <value>Importo del bonus fiscale.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "bonusFiscaleImporto", EmitDefaultValue = false)]
+        public double BonusFiscaleImporto { get; set; }
+
+        /// <summary>
+        /// Netto a pagare.
+        /// </summary>
+        /// <value>Netto a pagare.</value>
+        /*
+        <example>1467.05</example>
+        */
+        [DataMember(Name = "nettoAPagare", EmitDefaultValue = false)]
+        public double NettoAPagare { get; set; }
+
+        /// <summary>
+        /// Riepiloghi IVA.
+        /// </summary>
+        /// <value>Riepiloghi IVA.</value>
+        [DataMember(Name = "riepiloghiIva", EmitDefaultValue = true)]
+        public List<DocumentoComputeResultRiepilogoIva> RiepiloghiIva { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class DocumentoComputeResult {\n");
+            sb.Append("  TotaleMerce: ").Append(TotaleMerce).Append("\n");
+            sb.Append("  TotaleMerceScontata: ").Append(TotaleMerceScontata).Append("\n");
+            sb.Append("  TotaleImponibile: ").Append(TotaleImponibile).Append("\n");
+            sb.Append("  TotaleSpeseEsenti: ").Append(TotaleSpeseEsenti).Append("\n");
+            sb.Append("  TotaleSpeseNonEsenti: ").Append(TotaleSpeseNonEsenti).Append("\n");
+            sb.Append("  TotaleSpese: ").Append(TotaleSpese).Append("\n");
+            sb.Append("  TotaleRitenuta: ").Append(TotaleRitenuta).Append("\n");
+            sb.Append("  TotaleCassaPrevidenziale: ").Append(TotaleCassaPrevidenziale).Append("\n");
+            sb.Append("  EnasarcoImporto: ").Append(EnasarcoImporto).Append("\n");
+            sb.Append("  TotaleEsente: ").Append(TotaleEsente).Append("\n");
+            sb.Append("  TotaleImposta: ").Append(TotaleImposta).Append("\n");
+            sb.Append("  TotaleSplitPayment: ").Append(TotaleSplitPayment).Append("\n");
+            sb.Append("  TotaleAbbuoni: ").Append(TotaleAbbuoni).Append("\n");
+            sb.Append("  TotaleDocumento: ").Append(TotaleDocumento).Append("\n");
+            sb.Append("  BonusFiscaleImporto: ").Append(BonusFiscaleImporto).Append("\n");
+            sb.Append("  NettoAPagare: ").Append(NettoAPagare).Append("\n");
+            sb.Append("  RiepiloghiIva: ").Append(RiepiloghiIva).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            yield break;
+        }
+    }
+
+}

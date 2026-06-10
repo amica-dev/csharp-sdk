@@ -1,0 +1,285 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Movimento di magazzino.
+    /// </summary>
+    [DataContract(Name = "MovimentoMerce")]
+    public partial class MovimentoMerce : IValidatableObject
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MovimentoMerce" /> class.
+        /// </summary>
+        /// <param name="id">Identificativo univoco..</param>
+        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
+        /// <param name="modalitaPagamentoId">Identificativo univoco di Amica.MovimentoMerce.ModalitaPagamento..</param>
+        /// <param name="modalitaPagamento">modalitaPagamento.</param>
+        /// <param name="causaleMagazzinoId">Identificativo univoco di Amica.MovimentoMerce.CausaleMagazzino..</param>
+        /// <param name="causaleMagazzino">causaleMagazzino.</param>
+        /// <param name="anagraficaId">Identificativo univoco di Amica.MovimentoMerce.Anagrafica..</param>
+        /// <param name="anagrafica">anagrafica.</param>
+        /// <param name="documentoId">Identificativo univoco di Amica.Documento..</param>
+        /// <param name="ivaEsclusa">Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali)..</param>
+        /// <param name="data">Data del movimento..</param>
+        /// <param name="descrizione">Descrizione..</param>
+        /// <param name="documentoNumero">Numero del documento di riferimento..</param>
+        /// <param name="documentoData">Data del documento di riferimento..</param>
+        /// <param name="note">Note..</param>
+        /// <param name="righe">Righe del movimento..</param>
+        public MovimentoMerce(int id = default(int), int concurrencyToken = default(int), int? modalitaPagamentoId = default(int?), ModalitaPagamento modalitaPagamento = default(ModalitaPagamento), int causaleMagazzinoId = default(int), CausaleMagazzino causaleMagazzino = default(CausaleMagazzino), int? anagraficaId = default(int?), Anagrafica anagrafica = default(Anagrafica), int? documentoId = default(int?), bool ivaEsclusa = default(bool), DateTime data = default(DateTime), string descrizione = default(string), string documentoNumero = default(string), DateTime? documentoData = default(DateTime?), string note = default(string), List<MovimentoMerceRiga> righe = default(List<MovimentoMerceRiga>))
+        {
+            this.Id = id;
+            this.ConcurrencyToken = concurrencyToken;
+            this.ModalitaPagamentoId = modalitaPagamentoId;
+            this.ModalitaPagamento = modalitaPagamento;
+            this.CausaleMagazzinoId = causaleMagazzinoId;
+            this.CausaleMagazzino = causaleMagazzino;
+            this.AnagraficaId = anagraficaId;
+            this.Anagrafica = anagrafica;
+            this.DocumentoId = documentoId;
+            this.IvaEsclusa = ivaEsclusa;
+            this.Data = data;
+            this.Descrizione = descrizione;
+            this.DocumentoNumero = documentoNumero;
+            this.DocumentoData = documentoData;
+            this.Note = note;
+            this.Righe = righe;
+        }
+
+        /// <summary>
+        /// Identificativo univoco.
+        /// </summary>
+        /// <value>Identificativo univoco.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "id", EmitDefaultValue = false)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// </summary>
+        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
+        /*
+        <example>12345</example>
+        */
+        [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
+        public int ConcurrencyToken { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.MovimentoMerce.ModalitaPagamento.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.MovimentoMerce.ModalitaPagamento.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "modalitaPagamentoId", EmitDefaultValue = true)]
+        public int? ModalitaPagamentoId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets ModalitaPagamento
+        /// </summary>
+        [DataMember(Name = "modalitaPagamento", EmitDefaultValue = false)]
+        public ModalitaPagamento ModalitaPagamento { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.MovimentoMerce.CausaleMagazzino.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.MovimentoMerce.CausaleMagazzino.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "causaleMagazzinoId", EmitDefaultValue = false)]
+        public int CausaleMagazzinoId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets CausaleMagazzino
+        /// </summary>
+        [DataMember(Name = "causaleMagazzino", EmitDefaultValue = false)]
+        public CausaleMagazzino CausaleMagazzino { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.MovimentoMerce.Anagrafica.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.MovimentoMerce.Anagrafica.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "anagraficaId", EmitDefaultValue = true)]
+        public int? AnagraficaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Anagrafica
+        /// </summary>
+        [DataMember(Name = "anagrafica", EmitDefaultValue = false)]
+        public Anagrafica Anagrafica { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "documentoId", EmitDefaultValue = true)]
+        public int? DocumentoId { get; set; }
+
+        /// <summary>
+        /// Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).
+        /// </summary>
+        /// <value>Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).</value>
+        /*
+        <example>true</example>
+        */
+        [DataMember(Name = "ivaEsclusa", EmitDefaultValue = true)]
+        public bool IvaEsclusa { get; set; }
+
+        /// <summary>
+        /// Data del movimento.
+        /// </summary>
+        /// <value>Data del movimento.</value>
+        [DataMember(Name = "data", EmitDefaultValue = false)]
+        public DateTime Data { get; set; }
+
+        /// <summary>
+        /// Descrizione.
+        /// </summary>
+        /// <value>Descrizione.</value>
+        /*
+        <example>Carico merce da fornitore</example>
+        */
+        [DataMember(Name = "descrizione", EmitDefaultValue = true)]
+        public string Descrizione { get; set; }
+
+        /// <summary>
+        /// Numero del documento di riferimento.
+        /// </summary>
+        /// <value>Numero del documento di riferimento.</value>
+        /*
+        <example>DDT-2026-001</example>
+        */
+        [DataMember(Name = "documentoNumero", EmitDefaultValue = true)]
+        public string DocumentoNumero { get; set; }
+
+        /// <summary>
+        /// Data del documento di riferimento.
+        /// </summary>
+        /// <value>Data del documento di riferimento.</value>
+        [DataMember(Name = "documentoData", EmitDefaultValue = true)]
+        public DateTime? DocumentoData { get; set; }
+
+        /// <summary>
+        /// Note.
+        /// </summary>
+        /// <value>Note.</value>
+        /*
+        <example>Merce ricevuta in buono stato.</example>
+        */
+        [DataMember(Name = "note", EmitDefaultValue = true)]
+        public string Note { get; set; }
+
+        /// <summary>
+        /// Righe del movimento.
+        /// </summary>
+        /// <value>Righe del movimento.</value>
+        [DataMember(Name = "righe", EmitDefaultValue = true)]
+        public List<MovimentoMerceRiga> Righe { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class MovimentoMerce {\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  ConcurrencyToken: ").Append(ConcurrencyToken).Append("\n");
+            sb.Append("  ModalitaPagamentoId: ").Append(ModalitaPagamentoId).Append("\n");
+            sb.Append("  ModalitaPagamento: ").Append(ModalitaPagamento).Append("\n");
+            sb.Append("  CausaleMagazzinoId: ").Append(CausaleMagazzinoId).Append("\n");
+            sb.Append("  CausaleMagazzino: ").Append(CausaleMagazzino).Append("\n");
+            sb.Append("  AnagraficaId: ").Append(AnagraficaId).Append("\n");
+            sb.Append("  Anagrafica: ").Append(Anagrafica).Append("\n");
+            sb.Append("  DocumentoId: ").Append(DocumentoId).Append("\n");
+            sb.Append("  IvaEsclusa: ").Append(IvaEsclusa).Append("\n");
+            sb.Append("  Data: ").Append(Data).Append("\n");
+            sb.Append("  Descrizione: ").Append(Descrizione).Append("\n");
+            sb.Append("  DocumentoNumero: ").Append(DocumentoNumero).Append("\n");
+            sb.Append("  DocumentoData: ").Append(DocumentoData).Append("\n");
+            sb.Append("  Note: ").Append(Note).Append("\n");
+            sb.Append("  Righe: ").Append(Righe).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            // Descrizione (string) maxLength
+            if (this.Descrizione != null && this.Descrizione.Length > 50)
+            {
+                yield return new ValidationResult("Invalid value for Descrizione, length must be less than 50.", new [] { "Descrizione" });
+            }
+
+            // Descrizione (string) minLength
+            if (this.Descrizione != null && this.Descrizione.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Descrizione, length must be greater than 0.", new [] { "Descrizione" });
+            }
+
+            // DocumentoNumero (string) maxLength
+            if (this.DocumentoNumero != null && this.DocumentoNumero.Length > 20)
+            {
+                yield return new ValidationResult("Invalid value for DocumentoNumero, length must be less than 20.", new [] { "DocumentoNumero" });
+            }
+
+            // DocumentoNumero (string) minLength
+            if (this.DocumentoNumero != null && this.DocumentoNumero.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for DocumentoNumero, length must be greater than 0.", new [] { "DocumentoNumero" });
+            }
+
+            yield break;
+        }
+    }
+
+}

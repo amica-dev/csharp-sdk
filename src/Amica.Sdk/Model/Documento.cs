@@ -1,0 +1,1636 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Un documento (fattura, documento di trasporto, ecc.)
+    /// </summary>
+    [DataContract(Name = "Documento")]
+    public partial class Documento : IValidatableObject
+    {
+        /// <summary>
+        /// Tipologia del documento.
+        /// </summary>
+        /// <value>Tipologia del documento.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum TipoDocumentoEnum
+        {
+            /// <summary>
+            /// Enum Ddt for value: Ddt
+            /// </summary>
+            [EnumMember(Value = "Ddt")]
+            Ddt = 1,
+
+            /// <summary>
+            /// Enum FatturaAccompagnatoria for value: FatturaAccompagnatoria
+            /// </summary>
+            [EnumMember(Value = "FatturaAccompagnatoria")]
+            FatturaAccompagnatoria = 2,
+
+            /// <summary>
+            /// Enum FatturaAcconto for value: FatturaAcconto
+            /// </summary>
+            [EnumMember(Value = "FatturaAcconto")]
+            FatturaAcconto = 3,
+
+            /// <summary>
+            /// Enum FatturaDifferita for value: FatturaDifferita
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferita")]
+            FatturaDifferita = 4,
+
+            /// <summary>
+            /// Enum FatturaProfessionista for value: FatturaProfessionista
+            /// </summary>
+            [EnumMember(Value = "FatturaProfessionista")]
+            FatturaProfessionista = 5,
+
+            /// <summary>
+            /// Enum RicevutaFiscale for value: RicevutaFiscale
+            /// </summary>
+            [EnumMember(Value = "RicevutaFiscale")]
+            RicevutaFiscale = 6,
+
+            /// <summary>
+            /// Enum NotaCredito for value: NotaCredito
+            /// </summary>
+            [EnumMember(Value = "NotaCredito")]
+            NotaCredito = 7,
+
+            /// <summary>
+            /// Enum NotaDebito for value: NotaDebito
+            /// </summary>
+            [EnumMember(Value = "NotaDebito")]
+            NotaDebito = 8,
+
+            /// <summary>
+            /// Enum Scontrino for value: Scontrino
+            /// </summary>
+            [EnumMember(Value = "Scontrino")]
+            Scontrino = 9,
+
+            /// <summary>
+            /// Enum OrdineCliente for value: OrdineCliente
+            /// </summary>
+            [EnumMember(Value = "OrdineCliente")]
+            OrdineCliente = 10,
+
+            /// <summary>
+            /// Enum Preventivo for value: Preventivo
+            /// </summary>
+            [EnumMember(Value = "Preventivo")]
+            Preventivo = 11,
+
+            /// <summary>
+            /// Enum DdtFornitore for value: DdtFornitore
+            /// </summary>
+            [EnumMember(Value = "DdtFornitore")]
+            DdtFornitore = 12,
+
+            /// <summary>
+            /// Enum FatturaAccompagnatoriaFornitore for value: FatturaAccompagnatoriaFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaAccompagnatoriaFornitore")]
+            FatturaAccompagnatoriaFornitore = 13,
+
+            /// <summary>
+            /// Enum FatturaDifferitaFornitore for value: FatturaDifferitaFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferitaFornitore")]
+            FatturaDifferitaFornitore = 14,
+
+            /// <summary>
+            /// Enum FatturaProfessionistaFornitore for value: FatturaProfessionistaFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaProfessionistaFornitore")]
+            FatturaProfessionistaFornitore = 15,
+
+            /// <summary>
+            /// Enum NotaCreditoFornitore for value: NotaCreditoFornitore
+            /// </summary>
+            [EnumMember(Value = "NotaCreditoFornitore")]
+            NotaCreditoFornitore = 16,
+
+            /// <summary>
+            /// Enum NotaDebitoFornitore for value: NotaDebitoFornitore
+            /// </summary>
+            [EnumMember(Value = "NotaDebitoFornitore")]
+            NotaDebitoFornitore = 17,
+
+            /// <summary>
+            /// Enum PreventivoFornitore for value: PreventivoFornitore
+            /// </summary>
+            [EnumMember(Value = "PreventivoFornitore")]
+            PreventivoFornitore = 18,
+
+            /// <summary>
+            /// Enum OrdineFornitore for value: OrdineFornitore
+            /// </summary>
+            [EnumMember(Value = "OrdineFornitore")]
+            OrdineFornitore = 19,
+
+            /// <summary>
+            /// Enum ResoCliente for value: ResoCliente
+            /// </summary>
+            [EnumMember(Value = "ResoCliente")]
+            ResoCliente = 20,
+
+            /// <summary>
+            /// Enum FatturaAccontoFornitore for value: FatturaAccontoFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaAccontoFornitore")]
+            FatturaAccontoFornitore = 21,
+
+            /// <summary>
+            /// Enum FatturaProForma for value: FatturaProForma
+            /// </summary>
+            [EnumMember(Value = "FatturaProForma")]
+            FatturaProForma = 22,
+
+            /// <summary>
+            /// Enum IntegrazioneFatturaReverseChargeInterno for value: IntegrazioneFatturaReverseChargeInterno
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneFatturaReverseChargeInterno")]
+            IntegrazioneFatturaReverseChargeInterno = 23,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoServiziEstero for value: IntegrazioneAcquistoServiziEstero
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoServiziEstero")]
+            IntegrazioneAcquistoServiziEstero = 24,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoBeniIntracomunitari for value: IntegrazioneAcquistoBeniIntracomunitari
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoBeniIntracomunitari")]
+            IntegrazioneAcquistoBeniIntracomunitari = 25,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoBeniArt17 for value: IntegrazioneAcquistoBeniArt17
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoBeniArt17")]
+            IntegrazioneAcquistoBeniArt17 = 26,
+
+            /// <summary>
+            /// Enum AutofatturaRegolarizzazioneFatture for value: AutofatturaRegolarizzazioneFatture
+            /// </summary>
+            [EnumMember(Value = "AutofatturaRegolarizzazioneFatture")]
+            AutofatturaRegolarizzazioneFatture = 27,
+
+            /// <summary>
+            /// Enum AutofatturaSplafonamento for value: AutofatturaSplafonamento
+            /// </summary>
+            [EnumMember(Value = "AutofatturaSplafonamento")]
+            AutofatturaSplafonamento = 28,
+
+            /// <summary>
+            /// Enum EstrazioneBeniDepositoIva for value: EstrazioneBeniDepositoIva
+            /// </summary>
+            [EnumMember(Value = "EstrazioneBeniDepositoIva")]
+            EstrazioneBeniDepositoIva = 29,
+
+            /// <summary>
+            /// Enum EstrazioneBeniDepositoIvaConVersamentoIva for value: EstrazioneBeniDepositoIvaConVersamentoIva
+            /// </summary>
+            [EnumMember(Value = "EstrazioneBeniDepositoIvaConVersamentoIva")]
+            EstrazioneBeniDepositoIvaConVersamentoIva = 30,
+
+            /// <summary>
+            /// Enum FatturaDifferitaArt21Comma4LetteraA for value: FatturaDifferitaArt21Comma4LetteraA
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferitaArt21Comma4LetteraA")]
+            FatturaDifferitaArt21Comma4LetteraA = 31,
+
+            /// <summary>
+            /// Enum FatturaDifferitaArt21Comma4LetteraB for value: FatturaDifferitaArt21Comma4LetteraB
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferitaArt21Comma4LetteraB")]
+            FatturaDifferitaArt21Comma4LetteraB = 32,
+
+            /// <summary>
+            /// Enum CessioniBeniAmmortizzabiliEPassaggiInterni for value: CessioniBeniAmmortizzabiliEPassaggiInterni
+            /// </summary>
+            [EnumMember(Value = "CessioniBeniAmmortizzabiliEPassaggiInterni")]
+            CessioniBeniAmmortizzabiliEPassaggiInterni = 33,
+
+            /// <summary>
+            /// Enum FatturaAutoconsumoOCessioniGratuite for value: FatturaAutoconsumoOCessioniGratuite
+            /// </summary>
+            [EnumMember(Value = "FatturaAutoconsumoOCessioniGratuite")]
+            FatturaAutoconsumoOCessioniGratuite = 34,
+
+            /// <summary>
+            /// Enum IntegrazioneFatturaReverseChargeInternoFornitore for value: IntegrazioneFatturaReverseChargeInternoFornitore
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneFatturaReverseChargeInternoFornitore")]
+            IntegrazioneFatturaReverseChargeInternoFornitore = 35,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoServiziEsteroFornitore for value: IntegrazioneAcquistoServiziEsteroFornitore
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoServiziEsteroFornitore")]
+            IntegrazioneAcquistoServiziEsteroFornitore = 36,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoBeniIntracomunitariFornitore for value: IntegrazioneAcquistoBeniIntracomunitariFornitore
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoBeniIntracomunitariFornitore")]
+            IntegrazioneAcquistoBeniIntracomunitariFornitore = 37,
+
+            /// <summary>
+            /// Enum IntegrazioneAcquistoBeniArt17Fornitore for value: IntegrazioneAcquistoBeniArt17Fornitore
+            /// </summary>
+            [EnumMember(Value = "IntegrazioneAcquistoBeniArt17Fornitore")]
+            IntegrazioneAcquistoBeniArt17Fornitore = 38,
+
+            /// <summary>
+            /// Enum AutofatturaRegolarizzazioneFattureFornitore for value: AutofatturaRegolarizzazioneFattureFornitore
+            /// </summary>
+            [EnumMember(Value = "AutofatturaRegolarizzazioneFattureFornitore")]
+            AutofatturaRegolarizzazioneFattureFornitore = 39,
+
+            /// <summary>
+            /// Enum AutofatturaSplafonamentoFornitore for value: AutofatturaSplafonamentoFornitore
+            /// </summary>
+            [EnumMember(Value = "AutofatturaSplafonamentoFornitore")]
+            AutofatturaSplafonamentoFornitore = 40,
+
+            /// <summary>
+            /// Enum EstrazioneBeniDepositoIvaFornitore for value: EstrazioneBeniDepositoIvaFornitore
+            /// </summary>
+            [EnumMember(Value = "EstrazioneBeniDepositoIvaFornitore")]
+            EstrazioneBeniDepositoIvaFornitore = 41,
+
+            /// <summary>
+            /// Enum EstrazioneBeniDepositoIvaConVersamentoIvaFornitore for value: EstrazioneBeniDepositoIvaConVersamentoIvaFornitore
+            /// </summary>
+            [EnumMember(Value = "EstrazioneBeniDepositoIvaConVersamentoIvaFornitore")]
+            EstrazioneBeniDepositoIvaConVersamentoIvaFornitore = 42,
+
+            /// <summary>
+            /// Enum FatturaDifferitaArt21Comma4LetteraAFornitore for value: FatturaDifferitaArt21Comma4LetteraAFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferitaArt21Comma4LetteraAFornitore")]
+            FatturaDifferitaArt21Comma4LetteraAFornitore = 43,
+
+            /// <summary>
+            /// Enum FatturaDifferitaArt21Comma4LetteraBFornitore for value: FatturaDifferitaArt21Comma4LetteraBFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaDifferitaArt21Comma4LetteraBFornitore")]
+            FatturaDifferitaArt21Comma4LetteraBFornitore = 44,
+
+            /// <summary>
+            /// Enum CessioniBeniAmmortizzabiliEPassaggiInterniFornitore for value: CessioniBeniAmmortizzabiliEPassaggiInterniFornitore
+            /// </summary>
+            [EnumMember(Value = "CessioniBeniAmmortizzabiliEPassaggiInterniFornitore")]
+            CessioniBeniAmmortizzabiliEPassaggiInterniFornitore = 45,
+
+            /// <summary>
+            /// Enum FatturaAutoconsumoOCessioniGratuiteFornitore for value: FatturaAutoconsumoOCessioniGratuiteFornitore
+            /// </summary>
+            [EnumMember(Value = "FatturaAutoconsumoOCessioniGratuiteFornitore")]
+            FatturaAutoconsumoOCessioniGratuiteFornitore = 46,
+
+            /// <summary>
+            /// Enum AcquistoSanMarinoConIva for value: AcquistoSanMarinoConIva
+            /// </summary>
+            [EnumMember(Value = "AcquistoSanMarinoConIva")]
+            AcquistoSanMarinoConIva = 47,
+
+            /// <summary>
+            /// Enum ComunicazioneOmessaOIrregolareFatturazione for value: ComunicazioneOmessaOIrregolareFatturazione
+            /// </summary>
+            [EnumMember(Value = "ComunicazioneOmessaOIrregolareFatturazione")]
+            ComunicazioneOmessaOIrregolareFatturazione = 48,
+
+            /// <summary>
+            /// Enum ComunicazioneOmessaOIrregolareFatturazioneFornitore for value: ComunicazioneOmessaOIrregolareFatturazioneFornitore
+            /// </summary>
+            [EnumMember(Value = "ComunicazioneOmessaOIrregolareFatturazioneFornitore")]
+            ComunicazioneOmessaOIrregolareFatturazioneFornitore = 49
+        }
+
+
+        /// <summary>
+        /// Tipologia del documento.
+        /// </summary>
+        /// <value>Tipologia del documento.</value>
+        [DataMember(Name = "tipoDocumento", EmitDefaultValue = false)]
+        public TipoDocumentoEnum? TipoDocumento { get; set; }
+        /// <summary>
+        /// Tipo di documento fiscale.
+        /// </summary>
+        /// <value>Tipo di documento fiscale.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum DocumentoFiscaleEnum
+        {
+            /// <summary>
+            /// Enum Vendita for value: Vendita
+            /// </summary>
+            [EnumMember(Value = "Vendita")]
+            Vendita = 1,
+
+            /// <summary>
+            /// Enum Acquisto for value: Acquisto
+            /// </summary>
+            [EnumMember(Value = "Acquisto")]
+            Acquisto = 2,
+
+            /// <summary>
+            /// Enum NonFiscale for value: NonFiscale
+            /// </summary>
+            [EnumMember(Value = "NonFiscale")]
+            NonFiscale = 3
+        }
+
+
+        /// <summary>
+        /// Tipo di documento fiscale.
+        /// </summary>
+        /// <value>Tipo di documento fiscale.</value>
+        [DataMember(Name = "documentoFiscale", EmitDefaultValue = false)]
+        public DocumentoFiscaleEnum? DocumentoFiscale { get; set; }
+        /// <summary>
+        /// Classe del documento.
+        /// </summary>
+        /// <value>Classe del documento.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum ClasseDocumentoEnum
+        {
+            /// <summary>
+            /// Enum Vendita for value: Vendita
+            /// </summary>
+            [EnumMember(Value = "Vendita")]
+            Vendita = 1,
+
+            /// <summary>
+            /// Enum Acquisto for value: Acquisto
+            /// </summary>
+            [EnumMember(Value = "Acquisto")]
+            Acquisto = 2
+        }
+
+
+        /// <summary>
+        /// Classe del documento.
+        /// </summary>
+        /// <value>Classe del documento.</value>
+        [DataMember(Name = "classeDocumento", EmitDefaultValue = false)]
+        public ClasseDocumentoEnum? ClasseDocumento { get; set; }
+        /// <summary>
+        /// Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.
+        /// </summary>
+        /// <value>Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum StatoEnum
+        {
+            /// <summary>
+            /// Enum Bozza for value: Bozza
+            /// </summary>
+            [EnumMember(Value = "Bozza")]
+            Bozza = 1,
+
+            /// <summary>
+            /// Enum Fatturato for value: Fatturato
+            /// </summary>
+            [EnumMember(Value = "Fatturato")]
+            Fatturato = 2,
+
+            /// <summary>
+            /// Enum Emesso for value: Emesso
+            /// </summary>
+            [EnumMember(Value = "Emesso")]
+            Emesso = 3,
+
+            /// <summary>
+            /// Enum FatturaAccontoScontataInFattura for value: FatturaAccontoScontataInFattura
+            /// </summary>
+            [EnumMember(Value = "FatturaAccontoScontataInFattura")]
+            FatturaAccontoScontataInFattura = 4,
+
+            /// <summary>
+            /// Enum PreventivoChiuso for value: PreventivoChiuso
+            /// </summary>
+            [EnumMember(Value = "PreventivoChiuso")]
+            PreventivoChiuso = 5,
+
+            /// <summary>
+            /// Enum OrdineEvaso for value: OrdineEvaso
+            /// </summary>
+            [EnumMember(Value = "OrdineEvaso")]
+            OrdineEvaso = 6,
+
+            /// <summary>
+            /// Enum OrdineParzialmenteEvaso for value: OrdineParzialmenteEvaso
+            /// </summary>
+            [EnumMember(Value = "OrdineParzialmenteEvaso")]
+            OrdineParzialmenteEvaso = 7,
+
+            /// <summary>
+            /// Enum OrdineAnnullato for value: OrdineAnnullato
+            /// </summary>
+            [EnumMember(Value = "OrdineAnnullato")]
+            OrdineAnnullato = 8,
+
+            /// <summary>
+            /// Enum ResoAccreditato for value: ResoAccreditato
+            /// </summary>
+            [EnumMember(Value = "ResoAccreditato")]
+            ResoAccreditato = 9,
+
+            /// <summary>
+            /// Enum DdtNonFatturare for value: DdtNonFatturare
+            /// </summary>
+            [EnumMember(Value = "DdtNonFatturare")]
+            DdtNonFatturare = 10
+        }
+
+
+        /// <summary>
+        /// Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.
+        /// </summary>
+        /// <value>Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.</value>
+        [DataMember(Name = "stato", EmitDefaultValue = false)]
+        public StatoEnum? Stato { get; set; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Documento" /> class.
+        /// </summary>
+        /// <param name="id">Identificativo univoco..</param>
+        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
+        /// <param name="anagraficaId">Identificativo univoco di Amica.Documento.Anagrafica..</param>
+        /// <param name="anagrafica">anagrafica.</param>
+        /// <param name="causaleDocumentoId">Identificativo univoco di Amica.Documento.CausaleDocumento..</param>
+        /// <param name="causaleDocumento">causaleDocumento.</param>
+        /// <param name="agenteId">Identificativo univoco di Amica.Documento.Anagrafica dell&#39;agente..</param>
+        /// <param name="agente">agente.</param>
+        /// <param name="pagamentoId">Identificativo univoco di Amica.Documento.Pagamento..</param>
+        /// <param name="pagamento">pagamento.</param>
+        /// <param name="vettoreId">Identificativo univoco di Amica.Documento.Anagrafica del vettore..</param>
+        /// <param name="vettore">vettore.</param>
+        /// <param name="cassaPrevidenzialeCausaleIvaId">Identificativo univoco della causale IVA della cassa previdenziale..</param>
+        /// <param name="modelloId">Obsoleto. Non utilizzare..</param>
+        /// <param name="cassaPrevidenzialeCausaleIva">cassaPrevidenzialeCausaleIva.</param>
+        /// <param name="destinazioneId">Identificativo univoco di Amica.Indirizzo di destinazione..</param>
+        /// <param name="destinazione">destinazione.</param>
+        /// <param name="valutaId">Identificativo univoco di Amica.Documento.Valuta..</param>
+        /// <param name="valuta">valuta.</param>
+        /// <param name="causaleMagazzinoId">Identificativo univoco di Amica.Documento.CausaleMagazzino..</param>
+        /// <param name="causaleMagazzino">causaleMagazzino.</param>
+        /// <param name="iva1CausaleIvaId">Identificativo univoco della prima causale IVA..</param>
+        /// <param name="iva1CausaleIva">iva1CausaleIva.</param>
+        /// <param name="iva2CausaleIvaId">Identificativo univoco della seconda causale IVA..</param>
+        /// <param name="iva2CausaleIva">iva2CausaleIva.</param>
+        /// <param name="iva3CausaleIvaId">Identificativo univoco della terza causale IVA..</param>
+        /// <param name="iva3CausaleIva">iva3CausaleIva.</param>
+        /// <param name="iva4CausaleIvaId">Identificativo univoco della quarta causale IVA..</param>
+        /// <param name="iva4CausaleIva">iva4CausaleIva.</param>
+        /// <param name="tipoDocumento">Tipologia del documento..</param>
+        /// <param name="documentoFiscale">Tipo di documento fiscale..</param>
+        /// <param name="destinazioneDiversa">Indica se la destinazione della merce è diversa dall&#39;indirizzo principale..</param>
+        /// <param name="ivaEsclusa">Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali)..</param>
+        /// <param name="ritenutaIncludeCassaPrevidenziale">Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento..</param>
+        /// <param name="classeDocumento">Classe del documento..</param>
+        /// <param name="contatto">Persona di contatto preferita, Amica.AnagraficaNominativo1 oppure Amica.AnagraficaNominativo2..</param>
+        /// <param name="numeroParteTesto">La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis..</param>
+        /// <param name="numeroParteNumerica">Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis..</param>
+        /// <param name="data">Data del documento..</param>
+        /// <param name="stato">Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso..</param>
+        /// <param name="dataScadenzaPreventivo">La data di scadenza, nel caso in cui il documento sia un preventivo..</param>
+        /// <param name="dataInizioScadenze">Data della prima scadenza di pagamento..</param>
+        /// <param name="scontoPercentuale">Sconto, in percentuale, da calcolare sull&#39;intero importo del documento..</param>
+        /// <param name="scontoIncondizionatoImporto">Sconto, in valuta, da applicare all&#39;intero importo del documento..</param>
+        /// <param name="abbuonoImporto">Importo dell&#39;abbuono..</param>
+        /// <param name="ritenutaPercentuale">Quota della ritenuta da applicare al documento..</param>
+        /// <param name="enasarcoPercentuale">Contributo Enasarco da applicare al documento..</param>
+        /// <param name="enasarcoImporto">Importo Enasarco..</param>
+        /// <param name="quotaRitenutaSuImponibile">Quota dell&#39;imponibile su cui applicare la ritenuta..</param>
+        /// <param name="cambio">Tasso di cambio rispetto all&#39;Euro, nel caso in cui la Amica.Documento.Valuta del documento non sia l&#39;Euro..</param>
+        /// <param name="cassaPrevidenzialeNome">Nome della cassa previdenziale applicata al documento..</param>
+        /// <param name="cassaPrevidenzialePercentuale">Aliquota (percentuale) della cassa previdenziale da applicare al documento..</param>
+        /// <param name="note">Note..</param>
+        /// <param name="scontoPagamentoPercentuale">Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta)..</param>
+        /// <param name="iva1Imponibile">Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva.</param>
+        /// <param name="iva2Imponibile">Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva.</param>
+        /// <param name="iva3Imponibile">Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva.</param>
+        /// <param name="iva4Imponibile">Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva.</param>
+        /// <param name="iva1ImponibileLordo">Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva al lordo di eventuali sconti di fattura..</param>
+        /// <param name="iva2ImponibileLordo">Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva al lordo di eventuali sconti di fattura..</param>
+        /// <param name="iva3ImponibileLordo">Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva al lordo di eventuali sconti di fattura..</param>
+        /// <param name="iva4ImponibileLordo">Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva al lordo di eventuali sconti di fattura..</param>
+        /// <param name="iva1Imposta">Totale imposta per Amica.Documento.Iva1CausaleIva.</param>
+        /// <param name="iva2Imposta">Totale imposta per Amica.Documento.Iva2CausaleIva.</param>
+        /// <param name="iva3Imposta">Totale imposta per Amica.Documento.Iva3CausaleIva.</param>
+        /// <param name="iva4Imposta">Totale imposta per Amica.Documento.Iva4CausaleIva.</param>
+        /// <param name="totaleRitenuta">Importo della ritenuta..</param>
+        /// <param name="totaleCassaPrevidenziale">Importo della cassa previdenziale..</param>
+        /// <param name="totaleSpese">Totale delle spese esenti e non esenti..</param>
+        /// <param name="totaleSpeseEsenti">Totale delle spese esenti da IVA..</param>
+        /// <param name="totaleSpeseNonEsenti">Totale delle spese non esenti da IVA..</param>
+        /// <param name="totaleMerce">Importo della merce..</param>
+        /// <param name="totaleMerceScontata">Importo della merce scontata..</param>
+        /// <param name="totaleImponibile">Totale imponibile, considerando tutte le causali IVA coinvolte..</param>
+        /// <param name="totaleImposta">Imposta IVA..</param>
+        /// <param name="totaleEsente">Importi esenti da IVA..</param>
+        /// <param name="totaleDocumento">Importo totale del documento..</param>
+        /// <param name="nettoAPagare">Netto a pagare..</param>
+        /// <param name="totaleSplitPayment">Importo dello split payment..</param>
+        /// <param name="bollo">Importo del bollo..</param>
+        /// <param name="xmlFileName">Nome del file XML..</param>
+        /// <param name="riferimentoAmministrazione">Numero di riferimento dell&#39;amministrazione..</param>
+        /// <param name="banca">banca.</param>
+        /// <param name="datiTrasporto">datiTrasporto.</param>
+        /// <param name="datiSdi">datiSdi.</param>
+        /// <param name="datiPA">datiPA.</param>
+        /// <param name="righe">Righe del documento..</param>
+        /// <param name="speseDocumento">Elenco delle spese..</param>
+        /// <param name="scadenze">Elenco delle scadenze..</param>
+        /// <param name="numero">Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da Amica.Documento.NumeroParteNumerica e Amica.Documento.NumeroParteTesto. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend..</param>
+        /// <param name="mediaFile">mediaFile.</param>
+        /// <param name="allegato">Obsoleto. Non utilizzare..</param>
+        /// <param name="bonusFiscaleCausale">Causale del bonus fiscale..</param>
+        /// <param name="bonusFiscaleImporto">Importo del bonus fiscale..</param>
+        /// <param name="bonusFiscalePercentuale">Percentuale del bonus fiscale..</param>
+        /// <param name="progressivoInvio">Numeri di invio (progressivi), così come restituiti dallo Sdi..</param>
+        public Documento(int id = default(int), int concurrencyToken = default(int), int anagraficaId = default(int), Anagrafica anagrafica = default(Anagrafica), int? causaleDocumentoId = default(int?), CausaleDocumento causaleDocumento = default(CausaleDocumento), int? agenteId = default(int?), Anagrafica agente = default(Anagrafica), int? pagamentoId = default(int?), Pagamento pagamento = default(Pagamento), int? vettoreId = default(int?), Anagrafica vettore = default(Anagrafica), int? cassaPrevidenzialeCausaleIvaId = default(int?), int? modelloId = default(int?), CausaleIva cassaPrevidenzialeCausaleIva = default(CausaleIva), int? destinazioneId = default(int?), Indirizzo destinazione = default(Indirizzo), int? valutaId = default(int?), Valuta valuta = default(Valuta), int? causaleMagazzinoId = default(int?), CausaleMagazzino causaleMagazzino = default(CausaleMagazzino), int? iva1CausaleIvaId = default(int?), CausaleIva iva1CausaleIva = default(CausaleIva), int? iva2CausaleIvaId = default(int?), CausaleIva iva2CausaleIva = default(CausaleIva), int? iva3CausaleIvaId = default(int?), CausaleIva iva3CausaleIva = default(CausaleIva), int? iva4CausaleIvaId = default(int?), CausaleIva iva4CausaleIva = default(CausaleIva), TipoDocumentoEnum? tipoDocumento = default(TipoDocumentoEnum?), DocumentoFiscaleEnum? documentoFiscale = default(DocumentoFiscaleEnum?), bool destinazioneDiversa = default(bool), bool ivaEsclusa = default(bool), bool ritenutaIncludeCassaPrevidenziale = default(bool), ClasseDocumentoEnum? classeDocumento = default(ClasseDocumentoEnum?), int? contatto = default(int?), string numeroParteTesto = default(string), int numeroParteNumerica = default(int), DateTime data = default(DateTime), StatoEnum? stato = default(StatoEnum?), DateTime? dataScadenzaPreventivo = default(DateTime?), DateTime? dataInizioScadenze = default(DateTime?), double scontoPercentuale = default(double), double scontoIncondizionatoImporto = default(double), double abbuonoImporto = default(double), double ritenutaPercentuale = default(double), double enasarcoPercentuale = default(double), double enasarcoImporto = default(double), double quotaRitenutaSuImponibile = default(double), double cambio = default(double), string cassaPrevidenzialeNome = default(string), double cassaPrevidenzialePercentuale = default(double), string note = default(string), double scontoPagamentoPercentuale = default(double), double iva1Imponibile = default(double), double iva2Imponibile = default(double), double iva3Imponibile = default(double), double iva4Imponibile = default(double), double iva1ImponibileLordo = default(double), double iva2ImponibileLordo = default(double), double iva3ImponibileLordo = default(double), double iva4ImponibileLordo = default(double), double iva1Imposta = default(double), double iva2Imposta = default(double), double iva3Imposta = default(double), double iva4Imposta = default(double), double totaleRitenuta = default(double), double totaleCassaPrevidenziale = default(double), double totaleSpese = default(double), double totaleSpeseEsenti = default(double), double totaleSpeseNonEsenti = default(double), double totaleMerce = default(double), double totaleMerceScontata = default(double), double totaleImponibile = default(double), double totaleImposta = default(double), double totaleEsente = default(double), double totaleDocumento = default(double), double nettoAPagare = default(double), double totaleSplitPayment = default(double), double bollo = default(double), string xmlFileName = default(string), string riferimentoAmministrazione = default(string), BancaDocumento banca = default(BancaDocumento), DatiTrasporto datiTrasporto = default(DatiTrasporto), DatiSdi datiSdi = default(DatiSdi), DatiPA datiPA = default(DatiPA), List<BeneServizio> righe = default(List<BeneServizio>), List<SpesaDocumento> speseDocumento = default(List<SpesaDocumento>), List<Scadenza> scadenze = default(List<Scadenza>), string numero = default(string), DocumentoMediaFile mediaFile = default(DocumentoMediaFile), string allegato = default(string), string bonusFiscaleCausale = default(string), double bonusFiscaleImporto = default(double), double bonusFiscalePercentuale = default(double), List<ProgressivoInvio> progressivoInvio = default(List<ProgressivoInvio>))
+        {
+            this.Id = id;
+            this.ConcurrencyToken = concurrencyToken;
+            this.AnagraficaId = anagraficaId;
+            this.Anagrafica = anagrafica;
+            this.CausaleDocumentoId = causaleDocumentoId;
+            this.CausaleDocumento = causaleDocumento;
+            this.AgenteId = agenteId;
+            this.Agente = agente;
+            this.PagamentoId = pagamentoId;
+            this.Pagamento = pagamento;
+            this.VettoreId = vettoreId;
+            this.Vettore = vettore;
+            this.CassaPrevidenzialeCausaleIvaId = cassaPrevidenzialeCausaleIvaId;
+            this.ModelloId = modelloId;
+            this.CassaPrevidenzialeCausaleIva = cassaPrevidenzialeCausaleIva;
+            this.DestinazioneId = destinazioneId;
+            this.Destinazione = destinazione;
+            this.ValutaId = valutaId;
+            this.Valuta = valuta;
+            this.CausaleMagazzinoId = causaleMagazzinoId;
+            this.CausaleMagazzino = causaleMagazzino;
+            this.Iva1CausaleIvaId = iva1CausaleIvaId;
+            this.Iva1CausaleIva = iva1CausaleIva;
+            this.Iva2CausaleIvaId = iva2CausaleIvaId;
+            this.Iva2CausaleIva = iva2CausaleIva;
+            this.Iva3CausaleIvaId = iva3CausaleIvaId;
+            this.Iva3CausaleIva = iva3CausaleIva;
+            this.Iva4CausaleIvaId = iva4CausaleIvaId;
+            this.Iva4CausaleIva = iva4CausaleIva;
+            this.TipoDocumento = tipoDocumento;
+            this.DocumentoFiscale = documentoFiscale;
+            this.DestinazioneDiversa = destinazioneDiversa;
+            this.IvaEsclusa = ivaEsclusa;
+            this.RitenutaIncludeCassaPrevidenziale = ritenutaIncludeCassaPrevidenziale;
+            this.ClasseDocumento = classeDocumento;
+            this.Contatto = contatto;
+            this.NumeroParteTesto = numeroParteTesto;
+            this.NumeroParteNumerica = numeroParteNumerica;
+            this.Data = data;
+            this.Stato = stato;
+            this.DataScadenzaPreventivo = dataScadenzaPreventivo;
+            this.DataInizioScadenze = dataInizioScadenze;
+            this.ScontoPercentuale = scontoPercentuale;
+            this.ScontoIncondizionatoImporto = scontoIncondizionatoImporto;
+            this.AbbuonoImporto = abbuonoImporto;
+            this.RitenutaPercentuale = ritenutaPercentuale;
+            this.EnasarcoPercentuale = enasarcoPercentuale;
+            this.EnasarcoImporto = enasarcoImporto;
+            this.QuotaRitenutaSuImponibile = quotaRitenutaSuImponibile;
+            this.Cambio = cambio;
+            this.CassaPrevidenzialeNome = cassaPrevidenzialeNome;
+            this.CassaPrevidenzialePercentuale = cassaPrevidenzialePercentuale;
+            this.Note = note;
+            this.ScontoPagamentoPercentuale = scontoPagamentoPercentuale;
+            this.Iva1Imponibile = iva1Imponibile;
+            this.Iva2Imponibile = iva2Imponibile;
+            this.Iva3Imponibile = iva3Imponibile;
+            this.Iva4Imponibile = iva4Imponibile;
+            this.Iva1ImponibileLordo = iva1ImponibileLordo;
+            this.Iva2ImponibileLordo = iva2ImponibileLordo;
+            this.Iva3ImponibileLordo = iva3ImponibileLordo;
+            this.Iva4ImponibileLordo = iva4ImponibileLordo;
+            this.Iva1Imposta = iva1Imposta;
+            this.Iva2Imposta = iva2Imposta;
+            this.Iva3Imposta = iva3Imposta;
+            this.Iva4Imposta = iva4Imposta;
+            this.TotaleRitenuta = totaleRitenuta;
+            this.TotaleCassaPrevidenziale = totaleCassaPrevidenziale;
+            this.TotaleSpese = totaleSpese;
+            this.TotaleSpeseEsenti = totaleSpeseEsenti;
+            this.TotaleSpeseNonEsenti = totaleSpeseNonEsenti;
+            this.TotaleMerce = totaleMerce;
+            this.TotaleMerceScontata = totaleMerceScontata;
+            this.TotaleImponibile = totaleImponibile;
+            this.TotaleImposta = totaleImposta;
+            this.TotaleEsente = totaleEsente;
+            this.TotaleDocumento = totaleDocumento;
+            this.NettoAPagare = nettoAPagare;
+            this.TotaleSplitPayment = totaleSplitPayment;
+            this.Bollo = bollo;
+            this.XmlFileName = xmlFileName;
+            this.RiferimentoAmministrazione = riferimentoAmministrazione;
+            this.Banca = banca;
+            this.DatiTrasporto = datiTrasporto;
+            this.DatiSdi = datiSdi;
+            this.DatiPA = datiPA;
+            this.Righe = righe;
+            this.SpeseDocumento = speseDocumento;
+            this.Scadenze = scadenze;
+            this.Numero = numero;
+            this.MediaFile = mediaFile;
+            this.Allegato = allegato;
+            this.BonusFiscaleCausale = bonusFiscaleCausale;
+            this.BonusFiscaleImporto = bonusFiscaleImporto;
+            this.BonusFiscalePercentuale = bonusFiscalePercentuale;
+            this.ProgressivoInvio = progressivoInvio;
+        }
+
+        /// <summary>
+        /// Identificativo univoco.
+        /// </summary>
+        /// <value>Identificativo univoco.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "id", EmitDefaultValue = false)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// </summary>
+        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
+        /*
+        <example>12345</example>
+        */
+        [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
+        public int ConcurrencyToken { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.Anagrafica.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.Anagrafica.</value>
+        [DataMember(Name = "anagraficaId", EmitDefaultValue = false)]
+        public int AnagraficaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Anagrafica
+        /// </summary>
+        [DataMember(Name = "anagrafica", EmitDefaultValue = false)]
+        public Anagrafica Anagrafica { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.CausaleDocumento.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.CausaleDocumento.</value>
+        [DataMember(Name = "causaleDocumentoId", EmitDefaultValue = true)]
+        public int? CausaleDocumentoId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets CausaleDocumento
+        /// </summary>
+        [DataMember(Name = "causaleDocumento", EmitDefaultValue = false)]
+        public CausaleDocumento CausaleDocumento { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.Anagrafica dell&#39;agente.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.Anagrafica dell&#39;agente.</value>
+        [DataMember(Name = "agenteId", EmitDefaultValue = true)]
+        public int? AgenteId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Agente
+        /// </summary>
+        [DataMember(Name = "agente", EmitDefaultValue = false)]
+        public Anagrafica Agente { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.Pagamento.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.Pagamento.</value>
+        [DataMember(Name = "pagamentoId", EmitDefaultValue = true)]
+        public int? PagamentoId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Pagamento
+        /// </summary>
+        [DataMember(Name = "pagamento", EmitDefaultValue = false)]
+        public Pagamento Pagamento { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.Anagrafica del vettore.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.Anagrafica del vettore.</value>
+        [DataMember(Name = "vettoreId", EmitDefaultValue = true)]
+        public int? VettoreId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Vettore
+        /// </summary>
+        [DataMember(Name = "vettore", EmitDefaultValue = false)]
+        public Anagrafica Vettore { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco della causale IVA della cassa previdenziale.
+        /// </summary>
+        /// <value>Identificativo univoco della causale IVA della cassa previdenziale.</value>
+        [DataMember(Name = "cassaPrevidenzialeCausaleIvaId", EmitDefaultValue = true)]
+        public int? CassaPrevidenzialeCausaleIvaId { get; set; }
+
+        /// <summary>
+        /// Obsoleto. Non utilizzare.
+        /// </summary>
+        /// <value>Obsoleto. Non utilizzare.</value>
+        [DataMember(Name = "modelloId", EmitDefaultValue = true)]
+        public int? ModelloId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets CassaPrevidenzialeCausaleIva
+        /// </summary>
+        [DataMember(Name = "cassaPrevidenzialeCausaleIva", EmitDefaultValue = false)]
+        public CausaleIva CassaPrevidenzialeCausaleIva { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Indirizzo di destinazione.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Indirizzo di destinazione.</value>
+        [DataMember(Name = "destinazioneId", EmitDefaultValue = true)]
+        public int? DestinazioneId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Destinazione
+        /// </summary>
+        [DataMember(Name = "destinazione", EmitDefaultValue = false)]
+        public Indirizzo Destinazione { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.Valuta.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.Valuta.</value>
+        [DataMember(Name = "valutaId", EmitDefaultValue = true)]
+        public int? ValutaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Valuta
+        /// </summary>
+        [DataMember(Name = "valuta", EmitDefaultValue = false)]
+        public Valuta Valuta { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco di Amica.Documento.CausaleMagazzino.
+        /// </summary>
+        /// <value>Identificativo univoco di Amica.Documento.CausaleMagazzino.</value>
+        [DataMember(Name = "causaleMagazzinoId", EmitDefaultValue = true)]
+        public int? CausaleMagazzinoId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets CausaleMagazzino
+        /// </summary>
+        [DataMember(Name = "causaleMagazzino", EmitDefaultValue = false)]
+        public CausaleMagazzino CausaleMagazzino { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco della prima causale IVA.
+        /// </summary>
+        /// <value>Identificativo univoco della prima causale IVA.</value>
+        [DataMember(Name = "iva1CausaleIvaId", EmitDefaultValue = true)]
+        public int? Iva1CausaleIvaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Iva1CausaleIva
+        /// </summary>
+        [DataMember(Name = "iva1CausaleIva", EmitDefaultValue = false)]
+        public CausaleIva Iva1CausaleIva { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco della seconda causale IVA.
+        /// </summary>
+        /// <value>Identificativo univoco della seconda causale IVA.</value>
+        [DataMember(Name = "iva2CausaleIvaId", EmitDefaultValue = true)]
+        public int? Iva2CausaleIvaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Iva2CausaleIva
+        /// </summary>
+        [DataMember(Name = "iva2CausaleIva", EmitDefaultValue = false)]
+        public CausaleIva Iva2CausaleIva { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco della terza causale IVA.
+        /// </summary>
+        /// <value>Identificativo univoco della terza causale IVA.</value>
+        [DataMember(Name = "iva3CausaleIvaId", EmitDefaultValue = true)]
+        public int? Iva3CausaleIvaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Iva3CausaleIva
+        /// </summary>
+        [DataMember(Name = "iva3CausaleIva", EmitDefaultValue = false)]
+        public CausaleIva Iva3CausaleIva { get; set; }
+
+        /// <summary>
+        /// Identificativo univoco della quarta causale IVA.
+        /// </summary>
+        /// <value>Identificativo univoco della quarta causale IVA.</value>
+        [DataMember(Name = "iva4CausaleIvaId", EmitDefaultValue = true)]
+        public int? Iva4CausaleIvaId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Iva4CausaleIva
+        /// </summary>
+        [DataMember(Name = "iva4CausaleIva", EmitDefaultValue = false)]
+        public CausaleIva Iva4CausaleIva { get; set; }
+
+        /// <summary>
+        /// Indica se la destinazione della merce è diversa dall&#39;indirizzo principale.
+        /// </summary>
+        /// <value>Indica se la destinazione della merce è diversa dall&#39;indirizzo principale.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "destinazioneDiversa", EmitDefaultValue = true)]
+        public bool DestinazioneDiversa { get; set; }
+
+        /// <summary>
+        /// Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).
+        /// </summary>
+        /// <value>Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).</value>
+        /*
+        <example>true</example>
+        */
+        [DataMember(Name = "ivaEsclusa", EmitDefaultValue = true)]
+        public bool IvaEsclusa { get; set; }
+
+        /// <summary>
+        /// Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento.
+        /// </summary>
+        /// <value>Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "ritenutaIncludeCassaPrevidenziale", EmitDefaultValue = true)]
+        public bool RitenutaIncludeCassaPrevidenziale { get; set; }
+
+        /// <summary>
+        /// Persona di contatto preferita, Amica.AnagraficaNominativo1 oppure Amica.AnagraficaNominativo2.
+        /// </summary>
+        /// <value>Persona di contatto preferita, Amica.AnagraficaNominativo1 oppure Amica.AnagraficaNominativo2.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "contatto", EmitDefaultValue = true)]
+        public int? Contatto { get; set; }
+
+        /// <summary>
+        /// La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis.
+        /// </summary>
+        /// <value>La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis.</value>
+        /*
+        <example>bis</example>
+        */
+        [DataMember(Name = "numeroParteTesto", EmitDefaultValue = true)]
+        public string NumeroParteTesto { get; set; }
+
+        /// <summary>
+        /// Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis.
+        /// </summary>
+        /// <value>Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis.</value>
+        /*
+        <example>42</example>
+        */
+        [DataMember(Name = "numeroParteNumerica", EmitDefaultValue = false)]
+        public int NumeroParteNumerica { get; set; }
+
+        /// <summary>
+        /// Data del documento.
+        /// </summary>
+        /// <value>Data del documento.</value>
+        [DataMember(Name = "data", EmitDefaultValue = false)]
+        public DateTime Data { get; set; }
+
+        /// <summary>
+        /// La data di scadenza, nel caso in cui il documento sia un preventivo.
+        /// </summary>
+        /// <value>La data di scadenza, nel caso in cui il documento sia un preventivo.</value>
+        [DataMember(Name = "dataScadenzaPreventivo", EmitDefaultValue = true)]
+        public DateTime? DataScadenzaPreventivo { get; set; }
+
+        /// <summary>
+        /// Data della prima scadenza di pagamento.
+        /// </summary>
+        /// <value>Data della prima scadenza di pagamento.</value>
+        [DataMember(Name = "dataInizioScadenze", EmitDefaultValue = true)]
+        public DateTime? DataInizioScadenze { get; set; }
+
+        /// <summary>
+        /// Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.
+        /// </summary>
+        /// <value>Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.</value>
+        /*
+        <example>5.0</example>
+        */
+        [DataMember(Name = "scontoPercentuale", EmitDefaultValue = false)]
+        public double ScontoPercentuale { get; set; }
+
+        /// <summary>
+        /// Sconto, in valuta, da applicare all&#39;intero importo del documento.
+        /// </summary>
+        /// <value>Sconto, in valuta, da applicare all&#39;intero importo del documento.</value>
+        /*
+        <example>50.0</example>
+        */
+        [DataMember(Name = "scontoIncondizionatoImporto", EmitDefaultValue = false)]
+        public double ScontoIncondizionatoImporto { get; set; }
+
+        /// <summary>
+        /// Importo dell&#39;abbuono.
+        /// </summary>
+        /// <value>Importo dell&#39;abbuono.</value>
+        /*
+        <example>2.5</example>
+        */
+        [DataMember(Name = "abbuonoImporto", EmitDefaultValue = false)]
+        public double AbbuonoImporto { get; set; }
+
+        /// <summary>
+        /// Quota della ritenuta da applicare al documento.
+        /// </summary>
+        /// <value>Quota della ritenuta da applicare al documento.</value>
+        /*
+        <example>20.0</example>
+        */
+        [DataMember(Name = "ritenutaPercentuale", EmitDefaultValue = false)]
+        public double RitenutaPercentuale { get; set; }
+
+        /// <summary>
+        /// Contributo Enasarco da applicare al documento.
+        /// </summary>
+        /// <value>Contributo Enasarco da applicare al documento.</value>
+        /*
+        <example>8.5</example>
+        */
+        [DataMember(Name = "enasarcoPercentuale", EmitDefaultValue = false)]
+        public double EnasarcoPercentuale { get; set; }
+
+        /// <summary>
+        /// Importo Enasarco.
+        /// </summary>
+        /// <value>Importo Enasarco.</value>
+        /*
+        <example>85.0</example>
+        */
+        [DataMember(Name = "enasarcoImporto", EmitDefaultValue = false)]
+        public double EnasarcoImporto { get; set; }
+
+        /// <summary>
+        /// Quota dell&#39;imponibile su cui applicare la ritenuta.
+        /// </summary>
+        /// <value>Quota dell&#39;imponibile su cui applicare la ritenuta.</value>
+        /*
+        <example>50.0</example>
+        */
+        [DataMember(Name = "quotaRitenutaSuImponibile", EmitDefaultValue = false)]
+        public double QuotaRitenutaSuImponibile { get; set; }
+
+        /// <summary>
+        /// Tasso di cambio rispetto all&#39;Euro, nel caso in cui la Amica.Documento.Valuta del documento non sia l&#39;Euro.
+        /// </summary>
+        /// <value>Tasso di cambio rispetto all&#39;Euro, nel caso in cui la Amica.Documento.Valuta del documento non sia l&#39;Euro.</value>
+        /*
+        <example>1.0</example>
+        */
+        [DataMember(Name = "cambio", EmitDefaultValue = false)]
+        public double Cambio { get; set; }
+
+        /// <summary>
+        /// Nome della cassa previdenziale applicata al documento.
+        /// </summary>
+        /// <value>Nome della cassa previdenziale applicata al documento.</value>
+        /*
+        <example>Cassa Forense</example>
+        */
+        [DataMember(Name = "cassaPrevidenzialeNome", EmitDefaultValue = true)]
+        public string CassaPrevidenzialeNome { get; set; }
+
+        /// <summary>
+        /// Aliquota (percentuale) della cassa previdenziale da applicare al documento.
+        /// </summary>
+        /// <value>Aliquota (percentuale) della cassa previdenziale da applicare al documento.</value>
+        /*
+        <example>4.0</example>
+        */
+        [DataMember(Name = "cassaPrevidenzialePercentuale", EmitDefaultValue = false)]
+        public double CassaPrevidenzialePercentuale { get; set; }
+
+        /// <summary>
+        /// Note.
+        /// </summary>
+        /// <value>Note.</value>
+        /*
+        <example>Consegna prevista entro fine mese.</example>
+        */
+        [DataMember(Name = "note", EmitDefaultValue = true)]
+        public string Note { get; set; }
+
+        /// <summary>
+        /// Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).
+        /// </summary>
+        /// <value>Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).</value>
+        /*
+        <example>5.0</example>
+        */
+        [DataMember(Name = "scontoPagamentoPercentuale", EmitDefaultValue = false)]
+        public double ScontoPagamentoPercentuale { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva</value>
+        /*
+        <example>1000.0</example>
+        */
+        [DataMember(Name = "iva1Imponibile", EmitDefaultValue = false)]
+        public double Iva1Imponibile { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva</value>
+        /*
+        <example>500.0</example>
+        */
+        [DataMember(Name = "iva2Imponibile", EmitDefaultValue = false)]
+        public double Iva2Imponibile { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva3Imponibile", EmitDefaultValue = false)]
+        public double Iva3Imponibile { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva4Imponibile", EmitDefaultValue = false)]
+        public double Iva4Imponibile { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva al lordo di eventuali sconti di fattura.
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva1CausaleIva al lordo di eventuali sconti di fattura.</value>
+        /*
+        <example>1050.0</example>
+        */
+        [DataMember(Name = "iva1ImponibileLordo", EmitDefaultValue = false)]
+        public double Iva1ImponibileLordo { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva al lordo di eventuali sconti di fattura.
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva2CausaleIva al lordo di eventuali sconti di fattura.</value>
+        /*
+        <example>525.0</example>
+        */
+        [DataMember(Name = "iva2ImponibileLordo", EmitDefaultValue = false)]
+        public double Iva2ImponibileLordo { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva al lordo di eventuali sconti di fattura.
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva3CausaleIva al lordo di eventuali sconti di fattura.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva3ImponibileLordo", EmitDefaultValue = false)]
+        public double Iva3ImponibileLordo { get; set; }
+
+        /// <summary>
+        /// Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva al lordo di eventuali sconti di fattura.
+        /// </summary>
+        /// <value>Totale imponibile attribuibile a Amica.Documento.Iva4CausaleIva al lordo di eventuali sconti di fattura.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva4ImponibileLordo", EmitDefaultValue = false)]
+        public double Iva4ImponibileLordo { get; set; }
+
+        /// <summary>
+        /// Totale imposta per Amica.Documento.Iva1CausaleIva
+        /// </summary>
+        /// <value>Totale imposta per Amica.Documento.Iva1CausaleIva</value>
+        /*
+        <example>220.0</example>
+        */
+        [DataMember(Name = "iva1Imposta", EmitDefaultValue = false)]
+        public double Iva1Imposta { get; set; }
+
+        /// <summary>
+        /// Totale imposta per Amica.Documento.Iva2CausaleIva
+        /// </summary>
+        /// <value>Totale imposta per Amica.Documento.Iva2CausaleIva</value>
+        /*
+        <example>50.0</example>
+        */
+        [DataMember(Name = "iva2Imposta", EmitDefaultValue = false)]
+        public double Iva2Imposta { get; set; }
+
+        /// <summary>
+        /// Totale imposta per Amica.Documento.Iva3CausaleIva
+        /// </summary>
+        /// <value>Totale imposta per Amica.Documento.Iva3CausaleIva</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva3Imposta", EmitDefaultValue = false)]
+        public double Iva3Imposta { get; set; }
+
+        /// <summary>
+        /// Totale imposta per Amica.Documento.Iva4CausaleIva
+        /// </summary>
+        /// <value>Totale imposta per Amica.Documento.Iva4CausaleIva</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "iva4Imposta", EmitDefaultValue = false)]
+        public double Iva4Imposta { get; set; }
+
+        /// <summary>
+        /// Importo della ritenuta.
+        /// </summary>
+        /// <value>Importo della ritenuta.</value>
+        /*
+        <example>200.0</example>
+        */
+        [DataMember(Name = "totaleRitenuta", EmitDefaultValue = false)]
+        public double TotaleRitenuta { get; set; }
+
+        /// <summary>
+        /// Importo della cassa previdenziale.
+        /// </summary>
+        /// <value>Importo della cassa previdenziale.</value>
+        /*
+        <example>40.0</example>
+        */
+        [DataMember(Name = "totaleCassaPrevidenziale", EmitDefaultValue = false)]
+        public double TotaleCassaPrevidenziale { get; set; }
+
+        /// <summary>
+        /// Totale delle spese esenti e non esenti.
+        /// </summary>
+        /// <value>Totale delle spese esenti e non esenti.</value>
+        /*
+        <example>30.0</example>
+        */
+        [DataMember(Name = "totaleSpese", EmitDefaultValue = false)]
+        public double TotaleSpese { get; set; }
+
+        /// <summary>
+        /// Totale delle spese esenti da IVA.
+        /// </summary>
+        /// <value>Totale delle spese esenti da IVA.</value>
+        /*
+        <example>10.0</example>
+        */
+        [DataMember(Name = "totaleSpeseEsenti", EmitDefaultValue = false)]
+        public double TotaleSpeseEsenti { get; set; }
+
+        /// <summary>
+        /// Totale delle spese non esenti da IVA.
+        /// </summary>
+        /// <value>Totale delle spese non esenti da IVA.</value>
+        /*
+        <example>20.0</example>
+        */
+        [DataMember(Name = "totaleSpeseNonEsenti", EmitDefaultValue = false)]
+        public double TotaleSpeseNonEsenti { get; set; }
+
+        /// <summary>
+        /// Importo della merce.
+        /// </summary>
+        /// <value>Importo della merce.</value>
+        /*
+        <example>1500.0</example>
+        */
+        [DataMember(Name = "totaleMerce", EmitDefaultValue = false)]
+        public double TotaleMerce { get; set; }
+
+        /// <summary>
+        /// Importo della merce scontata.
+        /// </summary>
+        /// <value>Importo della merce scontata.</value>
+        /*
+        <example>1425.0</example>
+        */
+        [DataMember(Name = "totaleMerceScontata", EmitDefaultValue = false)]
+        public double TotaleMerceScontata { get; set; }
+
+        /// <summary>
+        /// Totale imponibile, considerando tutte le causali IVA coinvolte.
+        /// </summary>
+        /// <value>Totale imponibile, considerando tutte le causali IVA coinvolte.</value>
+        /*
+        <example>1500.0</example>
+        */
+        [DataMember(Name = "totaleImponibile", EmitDefaultValue = false)]
+        public double TotaleImponibile { get; set; }
+
+        /// <summary>
+        /// Imposta IVA.
+        /// </summary>
+        /// <value>Imposta IVA.</value>
+        /*
+        <example>270.0</example>
+        */
+        [DataMember(Name = "totaleImposta", EmitDefaultValue = false)]
+        public double TotaleImposta { get; set; }
+
+        /// <summary>
+        /// Importi esenti da IVA.
+        /// </summary>
+        /// <value>Importi esenti da IVA.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleEsente", EmitDefaultValue = false)]
+        public double TotaleEsente { get; set; }
+
+        /// <summary>
+        /// Importo totale del documento.
+        /// </summary>
+        /// <value>Importo totale del documento.</value>
+        /*
+        <example>1770.0</example>
+        */
+        [DataMember(Name = "totaleDocumento", EmitDefaultValue = false)]
+        public double TotaleDocumento { get; set; }
+
+        /// <summary>
+        /// Netto a pagare.
+        /// </summary>
+        /// <value>Netto a pagare.</value>
+        /*
+        <example>1770.0</example>
+        */
+        [DataMember(Name = "nettoAPagare", EmitDefaultValue = false)]
+        public double NettoAPagare { get; set; }
+
+        /// <summary>
+        /// Importo dello split payment.
+        /// </summary>
+        /// <value>Importo dello split payment.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "totaleSplitPayment", EmitDefaultValue = false)]
+        public double TotaleSplitPayment { get; set; }
+
+        /// <summary>
+        /// Importo del bollo.
+        /// </summary>
+        /// <value>Importo del bollo.</value>
+        /*
+        <example>2.0</example>
+        */
+        [DataMember(Name = "bollo", EmitDefaultValue = false)]
+        public double Bollo { get; set; }
+
+        /// <summary>
+        /// Nome del file XML.
+        /// </summary>
+        /// <value>Nome del file XML.</value>
+        /*
+        <example>IT01234567890_00042.xml</example>
+        */
+        [DataMember(Name = "xmlFileName", EmitDefaultValue = true)]
+        public string XmlFileName { get; set; }
+
+        /// <summary>
+        /// Numero di riferimento dell&#39;amministrazione.
+        /// </summary>
+        /// <value>Numero di riferimento dell&#39;amministrazione.</value>
+        /*
+        <example>RIF-2026-042</example>
+        */
+        [DataMember(Name = "riferimentoAmministrazione", EmitDefaultValue = true)]
+        public string RiferimentoAmministrazione { get; set; }
+
+        /// <summary>
+        /// Gets or Sets Banca
+        /// </summary>
+        [DataMember(Name = "banca", EmitDefaultValue = false)]
+        public BancaDocumento Banca { get; set; }
+
+        /// <summary>
+        /// Gets or Sets DatiTrasporto
+        /// </summary>
+        [DataMember(Name = "datiTrasporto", EmitDefaultValue = false)]
+        public DatiTrasporto DatiTrasporto { get; set; }
+
+        /// <summary>
+        /// Gets or Sets DatiSdi
+        /// </summary>
+        [DataMember(Name = "datiSdi", EmitDefaultValue = false)]
+        public DatiSdi DatiSdi { get; set; }
+
+        /// <summary>
+        /// Gets or Sets DatiPA
+        /// </summary>
+        [DataMember(Name = "datiPA", EmitDefaultValue = false)]
+        public DatiPA DatiPA { get; set; }
+
+        /// <summary>
+        /// Righe del documento.
+        /// </summary>
+        /// <value>Righe del documento.</value>
+        [DataMember(Name = "righe", EmitDefaultValue = true)]
+        public List<BeneServizio> Righe { get; set; }
+
+        /// <summary>
+        /// Elenco delle spese.
+        /// </summary>
+        /// <value>Elenco delle spese.</value>
+        [DataMember(Name = "speseDocumento", EmitDefaultValue = true)]
+        public List<SpesaDocumento> SpeseDocumento { get; set; }
+
+        /// <summary>
+        /// Elenco delle scadenze.
+        /// </summary>
+        /// <value>Elenco delle scadenze.</value>
+        [DataMember(Name = "scadenze", EmitDefaultValue = true)]
+        public List<Scadenza> Scadenze { get; set; }
+
+        /// <summary>
+        /// Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da Amica.Documento.NumeroParteNumerica e Amica.Documento.NumeroParteTesto. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend.
+        /// </summary>
+        /// <value>Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da Amica.Documento.NumeroParteNumerica e Amica.Documento.NumeroParteTesto. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend.</value>
+        /*
+        <example>42/bis</example>
+        */
+        [DataMember(Name = "numero", EmitDefaultValue = true)]
+        public string Numero { get; set; }
+
+        /// <summary>
+        /// Gets or Sets MediaFile
+        /// </summary>
+        [DataMember(Name = "mediaFile", EmitDefaultValue = false)]
+        public DocumentoMediaFile MediaFile { get; set; }
+
+        /// <summary>
+        /// Obsoleto. Non utilizzare.
+        /// </summary>
+        /// <value>Obsoleto. Non utilizzare.</value>
+        [DataMember(Name = "allegato", EmitDefaultValue = true)]
+        public string Allegato { get; set; }
+
+        /// <summary>
+        /// Causale del bonus fiscale.
+        /// </summary>
+        /// <value>Causale del bonus fiscale.</value>
+        /*
+        <example>Bonus ristrutturazione 50%</example>
+        */
+        [DataMember(Name = "bonusFiscaleCausale", EmitDefaultValue = true)]
+        public string BonusFiscaleCausale { get; set; }
+
+        /// <summary>
+        /// Importo del bonus fiscale.
+        /// </summary>
+        /// <value>Importo del bonus fiscale.</value>
+        /*
+        <example>750.0</example>
+        */
+        [DataMember(Name = "bonusFiscaleImporto", EmitDefaultValue = false)]
+        public double BonusFiscaleImporto { get; set; }
+
+        /// <summary>
+        /// Percentuale del bonus fiscale.
+        /// </summary>
+        /// <value>Percentuale del bonus fiscale.</value>
+        /*
+        <example>50.0</example>
+        */
+        [DataMember(Name = "bonusFiscalePercentuale", EmitDefaultValue = false)]
+        public double BonusFiscalePercentuale { get; set; }
+
+        /// <summary>
+        /// Numeri di invio (progressivi), così come restituiti dallo Sdi.
+        /// </summary>
+        /// <value>Numeri di invio (progressivi), così come restituiti dallo Sdi.</value>
+        [DataMember(Name = "progressivoInvio", EmitDefaultValue = true)]
+        public List<ProgressivoInvio> ProgressivoInvio { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class Documento {\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  ConcurrencyToken: ").Append(ConcurrencyToken).Append("\n");
+            sb.Append("  AnagraficaId: ").Append(AnagraficaId).Append("\n");
+            sb.Append("  Anagrafica: ").Append(Anagrafica).Append("\n");
+            sb.Append("  CausaleDocumentoId: ").Append(CausaleDocumentoId).Append("\n");
+            sb.Append("  CausaleDocumento: ").Append(CausaleDocumento).Append("\n");
+            sb.Append("  AgenteId: ").Append(AgenteId).Append("\n");
+            sb.Append("  Agente: ").Append(Agente).Append("\n");
+            sb.Append("  PagamentoId: ").Append(PagamentoId).Append("\n");
+            sb.Append("  Pagamento: ").Append(Pagamento).Append("\n");
+            sb.Append("  VettoreId: ").Append(VettoreId).Append("\n");
+            sb.Append("  Vettore: ").Append(Vettore).Append("\n");
+            sb.Append("  CassaPrevidenzialeCausaleIvaId: ").Append(CassaPrevidenzialeCausaleIvaId).Append("\n");
+            sb.Append("  ModelloId: ").Append(ModelloId).Append("\n");
+            sb.Append("  CassaPrevidenzialeCausaleIva: ").Append(CassaPrevidenzialeCausaleIva).Append("\n");
+            sb.Append("  DestinazioneId: ").Append(DestinazioneId).Append("\n");
+            sb.Append("  Destinazione: ").Append(Destinazione).Append("\n");
+            sb.Append("  ValutaId: ").Append(ValutaId).Append("\n");
+            sb.Append("  Valuta: ").Append(Valuta).Append("\n");
+            sb.Append("  CausaleMagazzinoId: ").Append(CausaleMagazzinoId).Append("\n");
+            sb.Append("  CausaleMagazzino: ").Append(CausaleMagazzino).Append("\n");
+            sb.Append("  Iva1CausaleIvaId: ").Append(Iva1CausaleIvaId).Append("\n");
+            sb.Append("  Iva1CausaleIva: ").Append(Iva1CausaleIva).Append("\n");
+            sb.Append("  Iva2CausaleIvaId: ").Append(Iva2CausaleIvaId).Append("\n");
+            sb.Append("  Iva2CausaleIva: ").Append(Iva2CausaleIva).Append("\n");
+            sb.Append("  Iva3CausaleIvaId: ").Append(Iva3CausaleIvaId).Append("\n");
+            sb.Append("  Iva3CausaleIva: ").Append(Iva3CausaleIva).Append("\n");
+            sb.Append("  Iva4CausaleIvaId: ").Append(Iva4CausaleIvaId).Append("\n");
+            sb.Append("  Iva4CausaleIva: ").Append(Iva4CausaleIva).Append("\n");
+            sb.Append("  TipoDocumento: ").Append(TipoDocumento).Append("\n");
+            sb.Append("  DocumentoFiscale: ").Append(DocumentoFiscale).Append("\n");
+            sb.Append("  DestinazioneDiversa: ").Append(DestinazioneDiversa).Append("\n");
+            sb.Append("  IvaEsclusa: ").Append(IvaEsclusa).Append("\n");
+            sb.Append("  RitenutaIncludeCassaPrevidenziale: ").Append(RitenutaIncludeCassaPrevidenziale).Append("\n");
+            sb.Append("  ClasseDocumento: ").Append(ClasseDocumento).Append("\n");
+            sb.Append("  Contatto: ").Append(Contatto).Append("\n");
+            sb.Append("  NumeroParteTesto: ").Append(NumeroParteTesto).Append("\n");
+            sb.Append("  NumeroParteNumerica: ").Append(NumeroParteNumerica).Append("\n");
+            sb.Append("  Data: ").Append(Data).Append("\n");
+            sb.Append("  Stato: ").Append(Stato).Append("\n");
+            sb.Append("  DataScadenzaPreventivo: ").Append(DataScadenzaPreventivo).Append("\n");
+            sb.Append("  DataInizioScadenze: ").Append(DataInizioScadenze).Append("\n");
+            sb.Append("  ScontoPercentuale: ").Append(ScontoPercentuale).Append("\n");
+            sb.Append("  ScontoIncondizionatoImporto: ").Append(ScontoIncondizionatoImporto).Append("\n");
+            sb.Append("  AbbuonoImporto: ").Append(AbbuonoImporto).Append("\n");
+            sb.Append("  RitenutaPercentuale: ").Append(RitenutaPercentuale).Append("\n");
+            sb.Append("  EnasarcoPercentuale: ").Append(EnasarcoPercentuale).Append("\n");
+            sb.Append("  EnasarcoImporto: ").Append(EnasarcoImporto).Append("\n");
+            sb.Append("  QuotaRitenutaSuImponibile: ").Append(QuotaRitenutaSuImponibile).Append("\n");
+            sb.Append("  Cambio: ").Append(Cambio).Append("\n");
+            sb.Append("  CassaPrevidenzialeNome: ").Append(CassaPrevidenzialeNome).Append("\n");
+            sb.Append("  CassaPrevidenzialePercentuale: ").Append(CassaPrevidenzialePercentuale).Append("\n");
+            sb.Append("  Note: ").Append(Note).Append("\n");
+            sb.Append("  ScontoPagamentoPercentuale: ").Append(ScontoPagamentoPercentuale).Append("\n");
+            sb.Append("  Iva1Imponibile: ").Append(Iva1Imponibile).Append("\n");
+            sb.Append("  Iva2Imponibile: ").Append(Iva2Imponibile).Append("\n");
+            sb.Append("  Iva3Imponibile: ").Append(Iva3Imponibile).Append("\n");
+            sb.Append("  Iva4Imponibile: ").Append(Iva4Imponibile).Append("\n");
+            sb.Append("  Iva1ImponibileLordo: ").Append(Iva1ImponibileLordo).Append("\n");
+            sb.Append("  Iva2ImponibileLordo: ").Append(Iva2ImponibileLordo).Append("\n");
+            sb.Append("  Iva3ImponibileLordo: ").Append(Iva3ImponibileLordo).Append("\n");
+            sb.Append("  Iva4ImponibileLordo: ").Append(Iva4ImponibileLordo).Append("\n");
+            sb.Append("  Iva1Imposta: ").Append(Iva1Imposta).Append("\n");
+            sb.Append("  Iva2Imposta: ").Append(Iva2Imposta).Append("\n");
+            sb.Append("  Iva3Imposta: ").Append(Iva3Imposta).Append("\n");
+            sb.Append("  Iva4Imposta: ").Append(Iva4Imposta).Append("\n");
+            sb.Append("  TotaleRitenuta: ").Append(TotaleRitenuta).Append("\n");
+            sb.Append("  TotaleCassaPrevidenziale: ").Append(TotaleCassaPrevidenziale).Append("\n");
+            sb.Append("  TotaleSpese: ").Append(TotaleSpese).Append("\n");
+            sb.Append("  TotaleSpeseEsenti: ").Append(TotaleSpeseEsenti).Append("\n");
+            sb.Append("  TotaleSpeseNonEsenti: ").Append(TotaleSpeseNonEsenti).Append("\n");
+            sb.Append("  TotaleMerce: ").Append(TotaleMerce).Append("\n");
+            sb.Append("  TotaleMerceScontata: ").Append(TotaleMerceScontata).Append("\n");
+            sb.Append("  TotaleImponibile: ").Append(TotaleImponibile).Append("\n");
+            sb.Append("  TotaleImposta: ").Append(TotaleImposta).Append("\n");
+            sb.Append("  TotaleEsente: ").Append(TotaleEsente).Append("\n");
+            sb.Append("  TotaleDocumento: ").Append(TotaleDocumento).Append("\n");
+            sb.Append("  NettoAPagare: ").Append(NettoAPagare).Append("\n");
+            sb.Append("  TotaleSplitPayment: ").Append(TotaleSplitPayment).Append("\n");
+            sb.Append("  Bollo: ").Append(Bollo).Append("\n");
+            sb.Append("  XmlFileName: ").Append(XmlFileName).Append("\n");
+            sb.Append("  RiferimentoAmministrazione: ").Append(RiferimentoAmministrazione).Append("\n");
+            sb.Append("  Banca: ").Append(Banca).Append("\n");
+            sb.Append("  DatiTrasporto: ").Append(DatiTrasporto).Append("\n");
+            sb.Append("  DatiSdi: ").Append(DatiSdi).Append("\n");
+            sb.Append("  DatiPA: ").Append(DatiPA).Append("\n");
+            sb.Append("  Righe: ").Append(Righe).Append("\n");
+            sb.Append("  SpeseDocumento: ").Append(SpeseDocumento).Append("\n");
+            sb.Append("  Scadenze: ").Append(Scadenze).Append("\n");
+            sb.Append("  Numero: ").Append(Numero).Append("\n");
+            sb.Append("  MediaFile: ").Append(MediaFile).Append("\n");
+            sb.Append("  Allegato: ").Append(Allegato).Append("\n");
+            sb.Append("  BonusFiscaleCausale: ").Append(BonusFiscaleCausale).Append("\n");
+            sb.Append("  BonusFiscaleImporto: ").Append(BonusFiscaleImporto).Append("\n");
+            sb.Append("  BonusFiscalePercentuale: ").Append(BonusFiscalePercentuale).Append("\n");
+            sb.Append("  ProgressivoInvio: ").Append(ProgressivoInvio).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            // NumeroParteTesto (string) maxLength
+            if (this.NumeroParteTesto != null && this.NumeroParteTesto.Length > 40)
+            {
+                yield return new ValidationResult("Invalid value for NumeroParteTesto, length must be less than 40.", new [] { "NumeroParteTesto" });
+            }
+
+            // NumeroParteTesto (string) minLength
+            if (this.NumeroParteTesto != null && this.NumeroParteTesto.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for NumeroParteTesto, length must be greater than 0.", new [] { "NumeroParteTesto" });
+            }
+
+            // NumeroParteNumerica (int) maximum
+            if (this.NumeroParteNumerica > (int)2147483647)
+            {
+                yield return new ValidationResult("Invalid value for NumeroParteNumerica, must be a value less than or equal to 2147483647.", new [] { "NumeroParteNumerica" });
+            }
+
+            // NumeroParteNumerica (int) minimum
+            if (this.NumeroParteNumerica < (int)0)
+            {
+                yield return new ValidationResult("Invalid value for NumeroParteNumerica, must be a value greater than or equal to 0.", new [] { "NumeroParteNumerica" });
+            }
+
+            // CassaPrevidenzialeNome (string) maxLength
+            if (this.CassaPrevidenzialeNome != null && this.CassaPrevidenzialeNome.Length > 50)
+            {
+                yield return new ValidationResult("Invalid value for CassaPrevidenzialeNome, length must be less than 50.", new [] { "CassaPrevidenzialeNome" });
+            }
+
+            // CassaPrevidenzialeNome (string) minLength
+            if (this.CassaPrevidenzialeNome != null && this.CassaPrevidenzialeNome.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for CassaPrevidenzialeNome, length must be greater than 0.", new [] { "CassaPrevidenzialeNome" });
+            }
+
+            // RiferimentoAmministrazione (string) maxLength
+            if (this.RiferimentoAmministrazione != null && this.RiferimentoAmministrazione.Length > 20)
+            {
+                yield return new ValidationResult("Invalid value for RiferimentoAmministrazione, length must be less than 20.", new [] { "RiferimentoAmministrazione" });
+            }
+
+            // RiferimentoAmministrazione (string) minLength
+            if (this.RiferimentoAmministrazione != null && this.RiferimentoAmministrazione.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for RiferimentoAmministrazione, length must be greater than 0.", new [] { "RiferimentoAmministrazione" });
+            }
+
+            yield break;
+        }
+    }
+
+}

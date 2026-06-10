@@ -1,0 +1,268 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Causale IVA.
+    /// </summary>
+    [DataContract(Name = "CausaleIva")]
+    public partial class CausaleIva : IValidatableObject
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CausaleIva" /> class.
+        /// </summary>
+        [JsonConstructorAttribute]
+        protected CausaleIva() { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CausaleIva" /> class.
+        /// </summary>
+        /// <param name="id">Identificativo univoco..</param>
+        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
+        /// <param name="codice">Codice. (required).</param>
+        /// <param name="nome">Nome, o descrizione. (required).</param>
+        /// <param name="aliquota">Aliquota applicabile..</param>
+        /// <param name="indeducibilit">Quota di indeducibilità..</param>
+        /// <param name="intracomunitaria">Indica se l&#39;IVA è intracomunitaria..</param>
+        /// <param name="nonImponibile">Indica se l&#39;IVA non deve essere considerata nella determinazione dell&#39;imponibile..</param>
+        /// <param name="natura">Natura dell&#39;esenzione (codice), se applicabile (ad es. \&quot;N1\&quot;)..</param>
+        /// <param name="splitPayment">Indica se si applica lo split payment o meno..</param>
+        /// <param name="fatturaElettronica">Indica se l&#39;IVA è stata creata automaticamente durante l&#39;importazione di una fattura elettronica..</param>
+        public CausaleIva(int id = default(int), int concurrencyToken = default(int), string codice = default(string), string nome = default(string), double aliquota = default(double), double indeducibilit = default(double), bool intracomunitaria = default(bool), bool nonImponibile = default(bool), string natura = default(string), bool splitPayment = default(bool), bool fatturaElettronica = default(bool))
+        {
+            // to ensure "codice" is required (not null)
+            if (codice == null)
+            {
+                throw new ArgumentNullException("codice is a required property for CausaleIva and cannot be null");
+            }
+            this.Codice = codice;
+            // to ensure "nome" is required (not null)
+            if (nome == null)
+            {
+                throw new ArgumentNullException("nome is a required property for CausaleIva and cannot be null");
+            }
+            this.Nome = nome;
+            this.Id = id;
+            this.ConcurrencyToken = concurrencyToken;
+            this.Aliquota = aliquota;
+            this.Indeducibilit = indeducibilit;
+            this.Intracomunitaria = intracomunitaria;
+            this.NonImponibile = nonImponibile;
+            this.Natura = natura;
+            this.SplitPayment = splitPayment;
+            this.FatturaElettronica = fatturaElettronica;
+        }
+
+        /// <summary>
+        /// Identificativo univoco.
+        /// </summary>
+        /// <value>Identificativo univoco.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "id", EmitDefaultValue = false)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// </summary>
+        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
+        /*
+        <example>12345</example>
+        */
+        [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
+        public int ConcurrencyToken { get; set; }
+
+        /// <summary>
+        /// Codice.
+        /// </summary>
+        /// <value>Codice.</value>
+        /*
+        <example>22</example>
+        */
+        [DataMember(Name = "codice", IsRequired = true, EmitDefaultValue = true)]
+        public string Codice { get; set; }
+
+        /// <summary>
+        /// Nome, o descrizione.
+        /// </summary>
+        /// <value>Nome, o descrizione.</value>
+        /*
+        <example>IVA 22%</example>
+        */
+        [DataMember(Name = "nome", IsRequired = true, EmitDefaultValue = true)]
+        public string Nome { get; set; }
+
+        /// <summary>
+        /// Aliquota applicabile.
+        /// </summary>
+        /// <value>Aliquota applicabile.</value>
+        /*
+        <example>22</example>
+        */
+        [DataMember(Name = "aliquota", EmitDefaultValue = false)]
+        public double Aliquota { get; set; }
+
+        /// <summary>
+        /// Quota di indeducibilità.
+        /// </summary>
+        /// <value>Quota di indeducibilità.</value>
+        /*
+        <example>0.0</example>
+        */
+        [DataMember(Name = "indeducibilità", EmitDefaultValue = false)]
+        public double Indeducibilit { get; set; }
+
+        /// <summary>
+        /// Indica se l&#39;IVA è intracomunitaria.
+        /// </summary>
+        /// <value>Indica se l&#39;IVA è intracomunitaria.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "intracomunitaria", EmitDefaultValue = true)]
+        public bool Intracomunitaria { get; set; }
+
+        /// <summary>
+        /// Indica se l&#39;IVA non deve essere considerata nella determinazione dell&#39;imponibile.
+        /// </summary>
+        /// <value>Indica se l&#39;IVA non deve essere considerata nella determinazione dell&#39;imponibile.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "nonImponibile", EmitDefaultValue = true)]
+        public bool NonImponibile { get; set; }
+
+        /// <summary>
+        /// Natura dell&#39;esenzione (codice), se applicabile (ad es. \&quot;N1\&quot;).
+        /// </summary>
+        /// <value>Natura dell&#39;esenzione (codice), se applicabile (ad es. \&quot;N1\&quot;).</value>
+        /*
+        <example>N1</example>
+        */
+        [DataMember(Name = "natura", EmitDefaultValue = true)]
+        public string Natura { get; set; }
+
+        /// <summary>
+        /// Indica se si applica lo split payment o meno.
+        /// </summary>
+        /// <value>Indica se si applica lo split payment o meno.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "splitPayment", EmitDefaultValue = true)]
+        public bool SplitPayment { get; set; }
+
+        /// <summary>
+        /// Indica se l&#39;IVA è stata creata automaticamente durante l&#39;importazione di una fattura elettronica.
+        /// </summary>
+        /// <value>Indica se l&#39;IVA è stata creata automaticamente durante l&#39;importazione di una fattura elettronica.</value>
+        /*
+        <example>false</example>
+        */
+        [DataMember(Name = "fatturaElettronica", EmitDefaultValue = true)]
+        public bool FatturaElettronica { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class CausaleIva {\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  ConcurrencyToken: ").Append(ConcurrencyToken).Append("\n");
+            sb.Append("  Codice: ").Append(Codice).Append("\n");
+            sb.Append("  Nome: ").Append(Nome).Append("\n");
+            sb.Append("  Aliquota: ").Append(Aliquota).Append("\n");
+            sb.Append("  Indeducibilit: ").Append(Indeducibilit).Append("\n");
+            sb.Append("  Intracomunitaria: ").Append(Intracomunitaria).Append("\n");
+            sb.Append("  NonImponibile: ").Append(NonImponibile).Append("\n");
+            sb.Append("  Natura: ").Append(Natura).Append("\n");
+            sb.Append("  SplitPayment: ").Append(SplitPayment).Append("\n");
+            sb.Append("  FatturaElettronica: ").Append(FatturaElettronica).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            // Codice (string) maxLength
+            if (this.Codice != null && this.Codice.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Codice, length must be less than 5.", new [] { "Codice" });
+            }
+
+            // Codice (string) minLength
+            if (this.Codice != null && this.Codice.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Codice, length must be greater than 0.", new [] { "Codice" });
+            }
+
+            // Nome (string) maxLength
+            if (this.Nome != null && this.Nome.Length > 50)
+            {
+                yield return new ValidationResult("Invalid value for Nome, length must be less than 50.", new [] { "Nome" });
+            }
+
+            // Nome (string) minLength
+            if (this.Nome != null && this.Nome.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Nome, length must be greater than 0.", new [] { "Nome" });
+            }
+
+            // Natura (string) maxLength
+            if (this.Natura != null && this.Natura.Length > 4)
+            {
+                yield return new ValidationResult("Invalid value for Natura, length must be less than 4.", new [] { "Natura" });
+            }
+
+            // Natura (string) minLength
+            if (this.Natura != null && this.Natura.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Natura, length must be greater than 0.", new [] { "Natura" });
+            }
+
+            yield break;
+        }
+    }
+
+}

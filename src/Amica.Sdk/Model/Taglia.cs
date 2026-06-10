@@ -1,0 +1,535 @@
+/*
+ * Customers API
+ *
+ * La Customers API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare la Customers API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |- -- -- --|- -- -- -- -- -- --| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |- -- -- -- -|- -- -- -- -- -- --| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |- -- -- -- -- --|- -- -- -- -- -- --| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |- -- -- -- -|- -- -- -- -- -- --| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ *
+ * The version of the OpenAPI document: v3
+ * Contact: assistenza@gestionaleamica.com
+ * Generated by: https://github.com/openapitools/openapi-generator.git
+ */
+
+
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System.ComponentModel.DataAnnotations;
+using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
+
+namespace Amica.Sdk.Model
+{
+    /// <summary>
+    /// Taglia.
+    /// </summary>
+    [DataContract(Name = "Taglia")]
+    public partial class Taglia : IValidatableObject
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Taglia" /> class.
+        /// </summary>
+        [JsonConstructorAttribute]
+        protected Taglia() { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Taglia" /> class.
+        /// </summary>
+        /// <param name="id">Identificativo univoco..</param>
+        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
+        /// <param name="nome">Nome. (required).</param>
+        /// <param name="taglia1">Identificativo taglia #1 (es. &#39;XL&#39;)..</param>
+        /// <param name="taglia2">Identificativo taglia #2..</param>
+        /// <param name="taglia3">Identificativo taglia #3..</param>
+        /// <param name="taglia4">Identificativo taglia #4..</param>
+        /// <param name="taglia5">Identificativo taglia #5..</param>
+        /// <param name="taglia6">Identificativo taglia #6..</param>
+        /// <param name="taglia7">Identificativo taglia #7..</param>
+        /// <param name="taglia8">Identificativo taglia #8..</param>
+        /// <param name="taglia9">Identificativo taglia #9..</param>
+        /// <param name="taglia10">Identificativo taglia #10..</param>
+        /// <param name="taglia11">Identificativo taglia #11..</param>
+        /// <param name="taglia12">Identificativo taglia #12..</param>
+        /// <param name="taglia13">Identificativo taglia #13..</param>
+        /// <param name="taglia14">Identificativo taglia #14..</param>
+        /// <param name="taglia15">Identificativo taglia #15..</param>
+        /// <param name="taglia16">Identificativo taglia #16..</param>
+        public Taglia(int id = default(int), int concurrencyToken = default(int), string nome = default(string), string taglia1 = default(string), string taglia2 = default(string), string taglia3 = default(string), string taglia4 = default(string), string taglia5 = default(string), string taglia6 = default(string), string taglia7 = default(string), string taglia8 = default(string), string taglia9 = default(string), string taglia10 = default(string), string taglia11 = default(string), string taglia12 = default(string), string taglia13 = default(string), string taglia14 = default(string), string taglia15 = default(string), string taglia16 = default(string))
+        {
+            // to ensure "nome" is required (not null)
+            if (nome == null)
+            {
+                throw new ArgumentNullException("nome is a required property for Taglia and cannot be null");
+            }
+            this.Nome = nome;
+            this.Id = id;
+            this.ConcurrencyToken = concurrencyToken;
+            this.Taglia1 = taglia1;
+            this.Taglia2 = taglia2;
+            this.Taglia3 = taglia3;
+            this.Taglia4 = taglia4;
+            this.Taglia5 = taglia5;
+            this.Taglia6 = taglia6;
+            this.Taglia7 = taglia7;
+            this.Taglia8 = taglia8;
+            this.Taglia9 = taglia9;
+            this.Taglia10 = taglia10;
+            this.Taglia11 = taglia11;
+            this.Taglia12 = taglia12;
+            this.Taglia13 = taglia13;
+            this.Taglia14 = taglia14;
+            this.Taglia15 = taglia15;
+            this.Taglia16 = taglia16;
+        }
+
+        /// <summary>
+        /// Identificativo univoco.
+        /// </summary>
+        /// <value>Identificativo univoco.</value>
+        /*
+        <example>1</example>
+        */
+        [DataMember(Name = "id", EmitDefaultValue = false)]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// </summary>
+        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
+        /*
+        <example>12345</example>
+        */
+        [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
+        public int ConcurrencyToken { get; set; }
+
+        /// <summary>
+        /// Nome.
+        /// </summary>
+        /// <value>Nome.</value>
+        /*
+        <example>Taglia M</example>
+        */
+        [DataMember(Name = "nome", IsRequired = true, EmitDefaultValue = true)]
+        public string Nome { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #1 (es. &#39;XL&#39;).
+        /// </summary>
+        /// <value>Identificativo taglia #1 (es. &#39;XL&#39;).</value>
+        /*
+        <example>XL</example>
+        */
+        [DataMember(Name = "taglia1", EmitDefaultValue = true)]
+        public string Taglia1 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #2.
+        /// </summary>
+        /// <value>Identificativo taglia #2.</value>
+        /*
+        <example>L</example>
+        */
+        [DataMember(Name = "taglia2", EmitDefaultValue = true)]
+        public string Taglia2 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #3.
+        /// </summary>
+        /// <value>Identificativo taglia #3.</value>
+        /*
+        <example>M</example>
+        */
+        [DataMember(Name = "taglia3", EmitDefaultValue = true)]
+        public string Taglia3 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #4.
+        /// </summary>
+        /// <value>Identificativo taglia #4.</value>
+        /*
+        <example>S</example>
+        */
+        [DataMember(Name = "taglia4", EmitDefaultValue = true)]
+        public string Taglia4 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #5.
+        /// </summary>
+        /// <value>Identificativo taglia #5.</value>
+        /*
+        <example>XS</example>
+        */
+        [DataMember(Name = "taglia5", EmitDefaultValue = true)]
+        public string Taglia5 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #6.
+        /// </summary>
+        /// <value>Identificativo taglia #6.</value>
+        /*
+        <example>38</example>
+        */
+        [DataMember(Name = "taglia6", EmitDefaultValue = true)]
+        public string Taglia6 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #7.
+        /// </summary>
+        /// <value>Identificativo taglia #7.</value>
+        /*
+        <example>40</example>
+        */
+        [DataMember(Name = "taglia7", EmitDefaultValue = true)]
+        public string Taglia7 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #8.
+        /// </summary>
+        /// <value>Identificativo taglia #8.</value>
+        /*
+        <example>42</example>
+        */
+        [DataMember(Name = "taglia8", EmitDefaultValue = true)]
+        public string Taglia8 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #9.
+        /// </summary>
+        /// <value>Identificativo taglia #9.</value>
+        /*
+        <example>44</example>
+        */
+        [DataMember(Name = "taglia9", EmitDefaultValue = true)]
+        public string Taglia9 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #10.
+        /// </summary>
+        /// <value>Identificativo taglia #10.</value>
+        /*
+        <example>46</example>
+        */
+        [DataMember(Name = "taglia10", EmitDefaultValue = true)]
+        public string Taglia10 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #11.
+        /// </summary>
+        /// <value>Identificativo taglia #11.</value>
+        /*
+        <example>48</example>
+        */
+        [DataMember(Name = "taglia11", EmitDefaultValue = true)]
+        public string Taglia11 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #12.
+        /// </summary>
+        /// <value>Identificativo taglia #12.</value>
+        /*
+        <example>50</example>
+        */
+        [DataMember(Name = "taglia12", EmitDefaultValue = true)]
+        public string Taglia12 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #13.
+        /// </summary>
+        /// <value>Identificativo taglia #13.</value>
+        /*
+        <example>52</example>
+        */
+        [DataMember(Name = "taglia13", EmitDefaultValue = true)]
+        public string Taglia13 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #14.
+        /// </summary>
+        /// <value>Identificativo taglia #14.</value>
+        /*
+        <example>54</example>
+        */
+        [DataMember(Name = "taglia14", EmitDefaultValue = true)]
+        public string Taglia14 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #15.
+        /// </summary>
+        /// <value>Identificativo taglia #15.</value>
+        /*
+        <example>56</example>
+        */
+        [DataMember(Name = "taglia15", EmitDefaultValue = true)]
+        public string Taglia15 { get; set; }
+
+        /// <summary>
+        /// Identificativo taglia #16.
+        /// </summary>
+        /// <value>Identificativo taglia #16.</value>
+        /*
+        <example>58</example>
+        */
+        [DataMember(Name = "taglia16", EmitDefaultValue = true)]
+        public string Taglia16 { get; set; }
+
+        /// <summary>
+        /// Returns the string presentation of the object
+        /// </summary>
+        /// <returns>String presentation of the object</returns>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("class Taglia {\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  ConcurrencyToken: ").Append(ConcurrencyToken).Append("\n");
+            sb.Append("  Nome: ").Append(Nome).Append("\n");
+            sb.Append("  Taglia1: ").Append(Taglia1).Append("\n");
+            sb.Append("  Taglia2: ").Append(Taglia2).Append("\n");
+            sb.Append("  Taglia3: ").Append(Taglia3).Append("\n");
+            sb.Append("  Taglia4: ").Append(Taglia4).Append("\n");
+            sb.Append("  Taglia5: ").Append(Taglia5).Append("\n");
+            sb.Append("  Taglia6: ").Append(Taglia6).Append("\n");
+            sb.Append("  Taglia7: ").Append(Taglia7).Append("\n");
+            sb.Append("  Taglia8: ").Append(Taglia8).Append("\n");
+            sb.Append("  Taglia9: ").Append(Taglia9).Append("\n");
+            sb.Append("  Taglia10: ").Append(Taglia10).Append("\n");
+            sb.Append("  Taglia11: ").Append(Taglia11).Append("\n");
+            sb.Append("  Taglia12: ").Append(Taglia12).Append("\n");
+            sb.Append("  Taglia13: ").Append(Taglia13).Append("\n");
+            sb.Append("  Taglia14: ").Append(Taglia14).Append("\n");
+            sb.Append("  Taglia15: ").Append(Taglia15).Append("\n");
+            sb.Append("  Taglia16: ").Append(Taglia16).Append("\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns the JSON string presentation of the object
+        /// </summary>
+        /// <returns>JSON string presentation of the object</returns>
+        public virtual string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
+        /// <summary>
+        /// To validate all properties of the instance
+        /// </summary>
+        /// <param name="validationContext">Validation context</param>
+        /// <returns>Validation Result</returns>
+        IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+        {
+            // Nome (string) maxLength
+            if (this.Nome != null && this.Nome.Length > 40)
+            {
+                yield return new ValidationResult("Invalid value for Nome, length must be less than 40.", new [] { "Nome" });
+            }
+
+            // Nome (string) minLength
+            if (this.Nome != null && this.Nome.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Nome, length must be greater than 0.", new [] { "Nome" });
+            }
+
+            // Taglia1 (string) maxLength
+            if (this.Taglia1 != null && this.Taglia1.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia1, length must be less than 5.", new [] { "Taglia1" });
+            }
+
+            // Taglia1 (string) minLength
+            if (this.Taglia1 != null && this.Taglia1.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia1, length must be greater than 0.", new [] { "Taglia1" });
+            }
+
+            // Taglia2 (string) maxLength
+            if (this.Taglia2 != null && this.Taglia2.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia2, length must be less than 5.", new [] { "Taglia2" });
+            }
+
+            // Taglia2 (string) minLength
+            if (this.Taglia2 != null && this.Taglia2.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia2, length must be greater than 0.", new [] { "Taglia2" });
+            }
+
+            // Taglia3 (string) maxLength
+            if (this.Taglia3 != null && this.Taglia3.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia3, length must be less than 5.", new [] { "Taglia3" });
+            }
+
+            // Taglia3 (string) minLength
+            if (this.Taglia3 != null && this.Taglia3.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia3, length must be greater than 0.", new [] { "Taglia3" });
+            }
+
+            // Taglia4 (string) maxLength
+            if (this.Taglia4 != null && this.Taglia4.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia4, length must be less than 5.", new [] { "Taglia4" });
+            }
+
+            // Taglia4 (string) minLength
+            if (this.Taglia4 != null && this.Taglia4.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia4, length must be greater than 0.", new [] { "Taglia4" });
+            }
+
+            // Taglia5 (string) maxLength
+            if (this.Taglia5 != null && this.Taglia5.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia5, length must be less than 5.", new [] { "Taglia5" });
+            }
+
+            // Taglia5 (string) minLength
+            if (this.Taglia5 != null && this.Taglia5.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia5, length must be greater than 0.", new [] { "Taglia5" });
+            }
+
+            // Taglia6 (string) maxLength
+            if (this.Taglia6 != null && this.Taglia6.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia6, length must be less than 5.", new [] { "Taglia6" });
+            }
+
+            // Taglia6 (string) minLength
+            if (this.Taglia6 != null && this.Taglia6.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia6, length must be greater than 0.", new [] { "Taglia6" });
+            }
+
+            // Taglia7 (string) maxLength
+            if (this.Taglia7 != null && this.Taglia7.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia7, length must be less than 5.", new [] { "Taglia7" });
+            }
+
+            // Taglia7 (string) minLength
+            if (this.Taglia7 != null && this.Taglia7.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia7, length must be greater than 0.", new [] { "Taglia7" });
+            }
+
+            // Taglia8 (string) maxLength
+            if (this.Taglia8 != null && this.Taglia8.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia8, length must be less than 5.", new [] { "Taglia8" });
+            }
+
+            // Taglia8 (string) minLength
+            if (this.Taglia8 != null && this.Taglia8.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia8, length must be greater than 0.", new [] { "Taglia8" });
+            }
+
+            // Taglia9 (string) maxLength
+            if (this.Taglia9 != null && this.Taglia9.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia9, length must be less than 5.", new [] { "Taglia9" });
+            }
+
+            // Taglia9 (string) minLength
+            if (this.Taglia9 != null && this.Taglia9.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia9, length must be greater than 0.", new [] { "Taglia9" });
+            }
+
+            // Taglia10 (string) maxLength
+            if (this.Taglia10 != null && this.Taglia10.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia10, length must be less than 5.", new [] { "Taglia10" });
+            }
+
+            // Taglia10 (string) minLength
+            if (this.Taglia10 != null && this.Taglia10.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia10, length must be greater than 0.", new [] { "Taglia10" });
+            }
+
+            // Taglia11 (string) maxLength
+            if (this.Taglia11 != null && this.Taglia11.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia11, length must be less than 5.", new [] { "Taglia11" });
+            }
+
+            // Taglia11 (string) minLength
+            if (this.Taglia11 != null && this.Taglia11.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia11, length must be greater than 0.", new [] { "Taglia11" });
+            }
+
+            // Taglia12 (string) maxLength
+            if (this.Taglia12 != null && this.Taglia12.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia12, length must be less than 5.", new [] { "Taglia12" });
+            }
+
+            // Taglia12 (string) minLength
+            if (this.Taglia12 != null && this.Taglia12.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia12, length must be greater than 0.", new [] { "Taglia12" });
+            }
+
+            // Taglia13 (string) maxLength
+            if (this.Taglia13 != null && this.Taglia13.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia13, length must be less than 5.", new [] { "Taglia13" });
+            }
+
+            // Taglia13 (string) minLength
+            if (this.Taglia13 != null && this.Taglia13.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia13, length must be greater than 0.", new [] { "Taglia13" });
+            }
+
+            // Taglia14 (string) maxLength
+            if (this.Taglia14 != null && this.Taglia14.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia14, length must be less than 5.", new [] { "Taglia14" });
+            }
+
+            // Taglia14 (string) minLength
+            if (this.Taglia14 != null && this.Taglia14.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia14, length must be greater than 0.", new [] { "Taglia14" });
+            }
+
+            // Taglia15 (string) maxLength
+            if (this.Taglia15 != null && this.Taglia15.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia15, length must be less than 5.", new [] { "Taglia15" });
+            }
+
+            // Taglia15 (string) minLength
+            if (this.Taglia15 != null && this.Taglia15.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia15, length must be greater than 0.", new [] { "Taglia15" });
+            }
+
+            // Taglia16 (string) maxLength
+            if (this.Taglia16 != null && this.Taglia16.Length > 5)
+            {
+                yield return new ValidationResult("Invalid value for Taglia16, length must be less than 5.", new [] { "Taglia16" });
+            }
+
+            // Taglia16 (string) minLength
+            if (this.Taglia16 != null && this.Taglia16.Length < 0)
+            {
+                yield return new ValidationResult("Invalid value for Taglia16, length must be greater than 0.", new [] { "Taglia16" });
+            }
+
+            yield break;
+        }
+    }
+
+}

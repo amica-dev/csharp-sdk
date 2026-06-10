@@ -1,0 +1,14 @@
+# Amica.Sdk.Model.Azienda
+Dati dell'intestatario della licenza Amica.
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**Id** | **int** | Identificativo univoco. | [optional] 
+**ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
+**Nome** | **string** | Ragione sociale, così come registrata all&#39;attivazione della licenza Amica. | 
+**LicenseKey** | **string** | Chiave di licenza Amica. | [optional] 
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
