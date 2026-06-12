@@ -64,8 +64,6 @@ docs/DocumentoComputeResultRiepilogoIva.md
 docs/DocumentoImportData.md
 docs/DocumentoMediaFile.md
 docs/DocumentoMediaFileApi.md
-docs/Evento.md
-docs/EventoApi.md
 docs/FatturaElettronicaExportOptions.md
 docs/FatturaElettronicaExportResult.md
 docs/FatturaElettronicaImportResult.md
@@ -146,8 +144,6 @@ docs/Taglia.md
 docs/TagliaApi.md
 docs/Valuta.md
 docs/ValutaApi.md
-docs/WebHook.md
-docs/WebHookApi.md
 git_push.sh
 src/Amica.Sdk.Test/Amica.Sdk.Test.csproj
 src/Amica.Sdk.Test/Api/AnagraficaApiTests.cs
@@ -168,7 +164,6 @@ src/Amica.Sdk.Test/Api/ContoContabileApiTests.cs
 src/Amica.Sdk.Test/Api/DistintaBaseApiTests.cs
 src/Amica.Sdk.Test/Api/DocumentoApiTests.cs
 src/Amica.Sdk.Test/Api/DocumentoMediaFileApiTests.cs
-src/Amica.Sdk.Test/Api/EventoApiTests.cs
 src/Amica.Sdk.Test/Api/FatturaElettronicaXmlApiTests.cs
 src/Amica.Sdk.Test/Api/FatturaElettronicaXmlTemplateApiTests.cs
 src/Amica.Sdk.Test/Api/GiacenzaApiTests.cs
@@ -198,7 +193,6 @@ src/Amica.Sdk.Test/Api/SpesaApiTests.cs
 src/Amica.Sdk.Test/Api/SpesaDocumentoApiTests.cs
 src/Amica.Sdk.Test/Api/TagliaApiTests.cs
 src/Amica.Sdk.Test/Api/ValutaApiTests.cs
-src/Amica.Sdk.Test/Api/WebHookApiTests.cs
 src/Amica.Sdk.Test/Model/AllegatoDocumentoTests.cs
 src/Amica.Sdk.Test/Model/AnagraficaNominativo1Tests.cs
 src/Amica.Sdk.Test/Model/AnagraficaNominativo2Tests.cs
@@ -241,7 +235,6 @@ src/Amica.Sdk.Test/Model/DocumentoComputeResultTests.cs
 src/Amica.Sdk.Test/Model/DocumentoImportDataTests.cs
 src/Amica.Sdk.Test/Model/DocumentoMediaFileTests.cs
 src/Amica.Sdk.Test/Model/DocumentoTests.cs
-src/Amica.Sdk.Test/Model/EventoTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaExportOptionsTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaExportResultTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaImportResultTests.cs
@@ -293,7 +286,6 @@ src/Amica.Sdk.Test/Model/SpesaDocumentoTests.cs
 src/Amica.Sdk.Test/Model/SpesaTests.cs
 src/Amica.Sdk.Test/Model/TagliaTests.cs
 src/Amica.Sdk.Test/Model/ValutaTests.cs
-src/Amica.Sdk.Test/Model/WebHookTests.cs
 src/Amica.Sdk/Amica.Sdk.csproj
 src/Amica.Sdk/Api/AnagraficaApi.cs
 src/Amica.Sdk/Api/AreaGeograficaApi.cs
@@ -313,7 +305,6 @@ src/Amica.Sdk/Api/ContoContabileApi.cs
 src/Amica.Sdk/Api/DistintaBaseApi.cs
 src/Amica.Sdk/Api/DocumentoApi.cs
 src/Amica.Sdk/Api/DocumentoMediaFileApi.cs
-src/Amica.Sdk/Api/EventoApi.cs
 src/Amica.Sdk/Api/FatturaElettronicaXmlApi.cs
 src/Amica.Sdk/Api/FatturaElettronicaXmlTemplateApi.cs
 src/Amica.Sdk/Api/GiacenzaApi.cs
@@ -343,7 +334,6 @@ src/Amica.Sdk/Api/SpesaApi.cs
 src/Amica.Sdk/Api/SpesaDocumentoApi.cs
 src/Amica.Sdk/Api/TagliaApi.cs
 src/Amica.Sdk/Api/ValutaApi.cs
-src/Amica.Sdk/Api/WebHookApi.cs
 src/Amica.Sdk/Client/ApiClient.cs
 src/Amica.Sdk/Client/ApiException.cs
 src/Amica.Sdk/Client/ApiResponse.cs
@@ -406,7 +396,6 @@ src/Amica.Sdk/Model/DocumentoComputeResult.cs
 src/Amica.Sdk/Model/DocumentoComputeResultRiepilogoIva.cs
 src/Amica.Sdk/Model/DocumentoImportData.cs
 src/Amica.Sdk/Model/DocumentoMediaFile.cs
-src/Amica.Sdk/Model/Evento.cs
 src/Amica.Sdk/Model/FatturaElettronicaExportOptions.cs
 src/Amica.Sdk/Model/FatturaElettronicaExportResult.cs
 src/Amica.Sdk/Model/FatturaElettronicaImportResult.cs
@@ -458,4 +447,3 @@ src/Amica.Sdk/Model/Spesa.cs
 src/Amica.Sdk/Model/SpesaDocumento.cs
 src/Amica.Sdk/Model/Taglia.cs
 src/Amica.Sdk/Model/Valuta.cs
-src/Amica.Sdk/Model/WebHook.cs
