@@ -1,7 +1,7 @@
 /*
  * Amica Cloud API
  *
- * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
  * The version of the OpenAPI document: v3
  * Contact: assistenza@gestionaleamica.com
@@ -37,10 +37,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0);
+        void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0);
 
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per intervallo di date.
@@ -51,10 +52,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0);
+        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0);
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per nome file.
         /// </summary>
@@ -64,10 +66,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0);
+        void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0);
 
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per nome file.
@@ -78,10 +81,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0);
+        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0);
         /// <summary>
         /// Elimina in blocco tutte le fatture XML dell&#39;azienda.
         /// </summary>
@@ -132,10 +136,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
 
         /// <summary>
         /// Carica in blocco fatture XML da un archivio ZIP.
@@ -146,10 +151,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
         /// <summary>
         /// Esporta uno o più documenti in una fattura XML.
         /// </summary>
@@ -160,10 +166,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaExportResult</returns>
-        FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0);
+        FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0);
 
         /// <summary>
         /// Esporta uno o più documenti in una fattura XML.
@@ -175,10 +182,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaExportResult</returns>
-        ApiResponse<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0);
+        ApiResponse<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0);
         /// <summary>
         /// Scarica i file allegati di una fattura XML.
         /// </summary>
@@ -322,10 +330,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaXml</returns>
-        FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
+        FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
 
         /// <summary>
         /// Aggiorna un elemento esistente.
@@ -338,10 +347,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaXml</returns>
-        ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
+        ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
         /// <summary>
         /// Importa una fattura XML.
         /// </summary>
@@ -351,12 +361,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlImportPost(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlImportPost(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
 
         /// <summary>
         /// Importa una fattura XML.
@@ -367,12 +378,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di Amica.Documento avrà il Amica.Documento.Numero appropriato, basato sui documenti preesistenti di tipo compatibile).
         /// </summary>
@@ -401,13 +413,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdFatturaElettronicaXmlPairPost(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        void ApiVversionCompanyIdFatturaElettronicaXmlPairPost(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
 
         /// <summary>
         /// Associa una fattura XML a un documento esistente.
@@ -418,13 +431,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
+        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0);
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
@@ -432,10 +446,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaXml</returns>
-        FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
+        FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -447,19 +462,21 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaXml</returns>
-        ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
+        ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0);
         /// <summary>
         /// Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(string version, string companyId, int operationIndex = 0);
+        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
 
         /// <summary>
         /// Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
@@ -470,9 +487,10 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(string version, string companyId, int operationIndex = 0);
+        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
         /// <summary>
         /// Scarica le nuove fatture dal Sistema di Interscambio (SDI).
         /// </summary>
@@ -482,9 +500,10 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(string version, string companyId, int operationIndex = 0);
+        List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
 
         /// <summary>
         /// Scarica le nuove fatture dal Sistema di Interscambio (SDI).
@@ -495,9 +514,10 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(string version, string companyId, int operationIndex = 0);
+        ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
         /// <summary>
         /// Invia una o più fatture al Sistema di Interscambio (SDI).
         /// </summary>
@@ -507,10 +527,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaUploadResult</returns>
-        FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0);
+        FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0);
 
         /// <summary>
         /// Invia una o più fatture al Sistema di Interscambio (SDI).
@@ -521,20 +542,22 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaUploadResult</returns>
-        ApiResponse<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0);
+        ApiResponse<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0);
         /// <summary>
         /// Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0);
+        void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0);
 
         /// <summary>
         /// Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
@@ -545,10 +568,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0);
+        ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0);
         #endregion Synchronous Operations
     }
 
@@ -567,11 +591,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per intervallo di date.
@@ -582,11 +607,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per nome file.
         /// </summary>
@@ -596,11 +622,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Scarica un archivio ZIP di fatture XML, filtrate per nome file.
@@ -611,11 +638,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Elimina in blocco tutte le fatture XML dell&#39;azienda.
         /// </summary>
@@ -679,11 +707,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlBulkPostAsync(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlBulkPostAsync(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Carica in blocco fatture XML da un archivio ZIP.
@@ -694,11 +723,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Esporta uno o più documenti in una fattura XML.
         /// </summary>
@@ -709,11 +739,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaExportResult</returns>
-        System.Threading.Tasks.Task<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Esporta uno o più documenti in una fattura XML.
@@ -725,11 +756,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaExportResult)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaExportResult>> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaExportResult>> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Scarica i file allegati di una fattura XML.
         /// </summary>
@@ -898,11 +930,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaXml</returns>
-        System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Aggiorna un elemento esistente.
@@ -915,11 +948,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaXml)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa una fattura XML.
         /// </summary>
@@ -929,13 +963,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostAsync(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostAsync(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa una fattura XML.
@@ -946,13 +981,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di Amica.Documento avrà il Amica.Documento.Numero appropriato, basato sui documenti preesistenti di tipo compatibile).
         /// </summary>
@@ -989,6 +1025,7 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
@@ -996,7 +1033,7 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlPairPostAsync(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlPairPostAsync(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Associa una fattura XML a un documento esistente.
@@ -1007,6 +1044,7 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
@@ -1014,7 +1052,7 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
@@ -1025,11 +1063,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaXml</returns>
-        System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -1041,11 +1080,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaXml)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
         /// </summary>
@@ -1055,10 +1095,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
@@ -1069,10 +1110,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Scarica le nuove fatture dal Sistema di Interscambio (SDI).
         /// </summary>
@@ -1082,10 +1124,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Scarica le nuove fatture dal Sistema di Interscambio (SDI).
@@ -1096,10 +1139,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Invia una o più fatture al Sistema di Interscambio (SDI).
         /// </summary>
@@ -1109,11 +1153,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaUploadResult</returns>
-        System.Threading.Tasks.Task<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostAsync(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Invia una o più fatture al Sistema di Interscambio (SDI).
@@ -1124,11 +1169,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaUploadResult)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaUploadResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<FatturaElettronicaUploadResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
         /// </summary>
@@ -1138,11 +1184,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostAsync(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
@@ -1153,11 +1200,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         #endregion Asynchronous Operations
     }
 
@@ -1284,12 +1332,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0)
+        public void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0)
         {
-            ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(version, companyId, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
+            ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
         }
 
         /// <summary>
@@ -1298,10 +1347,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1343,6 +1393,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlGetArchiveByDateRangeOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost";
@@ -1354,7 +1408,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1407,13 +1461,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(version, companyId, fatturaElettronicaXmlGetArchiveByDateRangeOptions, operationIndex, cancellationToken).ConfigureAwait(false);
+            await ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByDateRangeOptions, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1422,11 +1477,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByDateRangeOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = default(FatturaElettronicaXmlGetArchiveByDateRangeOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1468,6 +1524,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlGetArchiveByDateRangeOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost";
@@ -1479,7 +1539,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1533,12 +1593,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0)
+        public void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0)
         {
-            ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(version, companyId, fatturaElettronicaXmlGetArchiveByFileNameOptions);
+            ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByFileNameOptions);
         }
 
         /// <summary>
@@ -1547,10 +1608,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1592,6 +1654,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlGetArchiveByFileNameOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost";
@@ -1603,7 +1669,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1656,13 +1722,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(version, companyId, fatturaElettronicaXmlGetArchiveByFileNameOptions, operationIndex, cancellationToken).ConfigureAwait(false);
+            await ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByFileNameOptions, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1671,11 +1738,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlGetArchiveByFileNameOptions">Opzioni di download. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = default(FatturaElettronicaXmlGetArchiveByFileNameOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1717,6 +1785,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlGetArchiveByFileNameOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost";
@@ -1728,7 +1800,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1848,7 +1920,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1969,7 +2041,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2087,7 +2159,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2206,7 +2278,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2260,12 +2332,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
-            ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(companyId, version, file);
+            ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(companyId, version, idempotencyKey, file);
         }
 
         /// <summary>
@@ -2274,10 +2347,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
@@ -2319,6 +2393,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (file != null)
             {
                 localVarRequestOptions.FileParameters.Add("file", file);
@@ -2333,7 +2411,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2386,13 +2464,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlBulkPostAsync(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlBulkPostAsync(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(companyId, version, file, operationIndex, cancellationToken).ConfigureAwait(false);
+            await ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(companyId, version, idempotencyKey, file, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -2401,11 +2480,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="version"></param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="file">Archivio ZIP contenente i file XML. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(string companyId, string version, System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfoAsync(string companyId, string version, string? idempotencyKey = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
@@ -2447,6 +2527,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (file != null)
             {
                 localVarRequestOptions.FileParameters.Add("file", file);
@@ -2461,7 +2545,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2516,12 +2600,13 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaExportResult</returns>
-        public FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0)
+        public FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(version, companyId, validationOverride, fatturaElettronicaExportOptions);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaExportOptions);
             return localVarResponse.Data;
         }
 
@@ -2532,10 +2617,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaExportResult</returns>
-        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -2581,6 +2667,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaExportOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlExportPost";
@@ -2592,7 +2682,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2646,13 +2736,14 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaExportResult</returns>
-        public async System.Threading.Tasks.Task<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<FatturaElettronicaExportResult> ApiVversionCompanyIdFatturaElettronicaXmlExportPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(version, companyId, validationOverride, fatturaElettronicaExportOptions, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaExportOptions, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -2663,11 +2754,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaExportOptions">Opzioni di esportazione. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaExportResult)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult>> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaExportResult>> ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = default(FatturaElettronicaExportOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -2713,6 +2805,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaExportOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlExportPost";
@@ -2724,7 +2820,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2852,7 +2948,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2981,7 +3077,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3108,7 +3204,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3236,7 +3332,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3391,7 +3487,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3547,7 +3643,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3669,7 +3765,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3792,7 +3888,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3920,7 +4016,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4049,7 +4145,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4105,12 +4201,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaXml</returns>
-        public FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
+        public FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(version, companyId, id, validationOverride, fatturaElettronicaXml);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, fatturaElettronicaXml);
             return localVarResponse.Data;
         }
 
@@ -4122,10 +4219,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaXml</returns>
-        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4172,6 +4270,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXml;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlIdPut";
@@ -4183,7 +4285,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4238,13 +4340,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaXml</returns>
-        public async System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(version, companyId, id, validationOverride, fatturaElettronicaXml, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, fatturaElettronicaXml, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4256,11 +4359,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaXml)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4307,6 +4411,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXml;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlIdPut";
@@ -4318,7 +4426,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4372,14 +4480,15 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlImportPost(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlImportPost(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(version, companyId, dataConsegnaSdi, identificativoSdi, file);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(version, companyId, idempotencyKey, dataConsegnaSdi, identificativoSdi, file);
             return localVarResponse.Data;
         }
 
@@ -4389,12 +4498,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4434,6 +4544,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (dataConsegnaSdi != null)
             {
                 localVarRequestOptions.FormParameters.Add("DataConsegnaSdi", Amica.Sdk.Client.ClientUtils.ParameterToString(dataConsegnaSdi)); // form parameter
@@ -4456,7 +4570,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4509,15 +4623,16 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostAsync(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostAsync(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(version, companyId, dataConsegnaSdi, identificativoSdi, file, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(version, companyId, idempotencyKey, dataConsegnaSdi, identificativoSdi, file, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4527,13 +4642,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="dataConsegnaSdi">Data di consegna del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="identificativoSdi">Identificativo assegnato dal Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(string version, string companyId, DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), DateTime? dataConsegnaSdi = default(DateTime?), string? identificativoSdi = default(string?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4573,6 +4689,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (dataConsegnaSdi != null)
             {
                 localVarRequestOptions.FormParameters.Add("DataConsegnaSdi", Amica.Sdk.Client.ClientUtils.ParameterToString(dataConsegnaSdi)); // form parameter
@@ -4595,7 +4715,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4714,7 +4834,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4834,7 +4954,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4888,15 +5008,16 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdFatturaElettronicaXmlPairPost(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public void ApiVversionCompanyIdFatturaElettronicaXmlPairPost(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
-            ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(version, companyId, fileName, progressivo, documentoId, file);
+            ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(version, companyId, idempotencyKey, fileName, progressivo, documentoId, file);
         }
 
         /// <summary>
@@ -4905,13 +5026,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
         /// <param name="file">Contenuto del file. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4951,6 +5073,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (fileName != null)
             {
                 localVarRequestOptions.FormParameters.Add("FileName", Amica.Sdk.Client.ClientUtils.ParameterToString(fileName)); // form parameter
@@ -4977,7 +5103,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5030,6 +5156,7 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
@@ -5037,9 +5164,9 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlPairPostAsync(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlPairPostAsync(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(version, companyId, fileName, progressivo, documentoId, file, operationIndex, cancellationToken).ConfigureAwait(false);
+            await ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(version, companyId, idempotencyKey, fileName, progressivo, documentoId, file, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -5048,6 +5175,7 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fileName">Nome del file. (optional)</param>
         /// <param name="progressivo">Progressivo del Sistema di Interscambio (SdI). (optional)</param>
         /// <param name="documentoId">Identificativo del Amica.Documento da abbinare. (optional)</param>
@@ -5055,7 +5183,7 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(string version, string companyId, string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), string? fileName = default(string?), string? progressivo = default(string?), int? documentoId = default(int?), System.IO.Stream? file = default(System.IO.Stream?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5095,6 +5223,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             if (fileName != null)
             {
                 localVarRequestOptions.FormParameters.Add("FileName", Amica.Sdk.Client.ClientUtils.ParameterToString(fileName)); // form parameter
@@ -5121,7 +5253,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5176,12 +5308,13 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaXml</returns>
-        public FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
+        public FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(version, companyId, validationOverride, fatturaElettronicaXml);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaXml);
             return localVarResponse.Data;
         }
 
@@ -5192,10 +5325,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaXml</returns>
-        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5241,6 +5375,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXml;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlPost";
@@ -5252,7 +5390,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5306,13 +5444,14 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaXml</returns>
-        public async System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<FatturaElettronicaXml> ApiVversionCompanyIdFatturaElettronicaXmlPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(version, companyId, validationOverride, fatturaElettronicaXml, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaXml, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5323,11 +5462,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXml">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaXml)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaXml>> ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), FatturaElettronicaXml? fatturaElettronicaXml = default(FatturaElettronicaXml?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5373,6 +5513,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXml;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlPost";
@@ -5384,7 +5528,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5438,11 +5582,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(string version, string companyId, int operationIndex = 0)
+        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(version, companyId);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(version, companyId, idempotencyKey);
             return localVarResponse.Data;
         }
 
@@ -5452,9 +5597,10 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(string version, string companyId, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5493,6 +5639,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -5503,7 +5653,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5556,12 +5706,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(version, companyId, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(version, companyId, idempotencyKey, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5571,10 +5722,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5613,6 +5765,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -5623,7 +5779,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5677,11 +5833,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(string version, string companyId, int operationIndex = 0)
+        public List<FatturaElettronicaImportResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(version, companyId);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(version, companyId, idempotencyKey);
             return localVarResponse.Data;
         }
 
@@ -5691,9 +5848,10 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(string version, string companyId, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5732,6 +5890,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -5742,7 +5904,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5795,12 +5957,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;FatturaElettronicaImportResult&gt;</returns>
-        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<List<FatturaElettronicaImportResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(version, companyId, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(version, companyId, idempotencyKey, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5810,10 +5973,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;FatturaElettronicaImportResult&gt;)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<FatturaElettronicaImportResult>>> ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5852,6 +6016,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -5862,7 +6030,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5916,12 +6084,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>FatturaElettronicaUploadResult</returns>
-        public FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0)
+        public FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(version, companyId, fatturaElettronicaUploadOptions);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> localVarResponse = ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaUploadOptions);
             return localVarResponse.Data;
         }
 
@@ -5931,10 +6100,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of FatturaElettronicaUploadResult</returns>
-        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5976,6 +6146,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaUploadOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost";
@@ -5987,7 +6161,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -6040,13 +6214,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FatturaElettronicaUploadResult</returns>
-        public async System.Threading.Tasks.Task<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostAsync(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<FatturaElettronicaUploadResult> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(version, companyId, fatturaElettronicaUploadOptions, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult> localVarResponse = await ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(version, companyId, idempotencyKey, fatturaElettronicaUploadOptions, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6056,11 +6231,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaUploadOptions">Opzioni di invio. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FatturaElettronicaUploadResult)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<FatturaElettronicaUploadResult>> ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = default(FatturaElettronicaUploadOptions?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -6102,6 +6278,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaUploadOptions;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost";
@@ -6113,7 +6293,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -6167,12 +6347,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0)
+        public void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0)
         {
-            ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(version, companyId, fatturaElettronicaXmlStyleSheetData);
+            ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlStyleSheetData);
         }
 
         /// <summary>
@@ -6181,10 +6362,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -6226,6 +6408,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlStyleSheetData;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost";
@@ -6237,7 +6423,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -6290,13 +6476,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostAsync(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(version, companyId, fatturaElettronicaXmlStyleSheetData, operationIndex, cancellationToken).ConfigureAwait(false);
+            await ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(version, companyId, idempotencyKey, fatturaElettronicaXmlStyleSheetData, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -6305,11 +6492,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="fatturaElettronicaXmlStyleSheetData">Opzioni di corrispondenza e stile. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = default(FatturaElettronicaXmlStyleSheetData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -6351,6 +6539,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = fatturaElettronicaXmlStyleSheetData;
 
             localVarRequestOptions.Operation = "FatturaElettronicaXmlApi.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost";
@@ -6362,7 +6554,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {

@@ -27,7 +27,7 @@ All URIs are relative to *http://localhost*
 
 <a id="apivversioncompanyidfatturaelettronicaxmlarchivebydaterangepost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost**
-> void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost (string version, string companyId, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = null)
+> void ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost (string version, string companyId, string? idempotencyKey = null, FatturaElettronicaXmlGetArchiveByDateRangeOptions? fatturaElettronicaXmlGetArchiveByDateRangeOptions = null)
 
 Scarica un archivio ZIP di fatture XML, filtrate per intervallo di date.
 
@@ -51,7 +51,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -59,12 +59,13 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaXmlGetArchiveByDateRangeOptions = new FatturaElettronicaXmlGetArchiveByDateRangeOptions?(); // FatturaElettronicaXmlGetArchiveByDateRangeOptions? | Opzioni di download. (optional) 
 
             try
             {
                 // Scarica un archivio ZIP di fatture XML, filtrate per intervallo di date.
-                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(version, companyId, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
+                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePost(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
             }
             catch (ApiException  e)
             {
@@ -84,7 +85,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Scarica un archivio ZIP di fatture XML, filtrate per intervallo di date.
-    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(version, companyId, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
+    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebydaterangePostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByDateRangeOptions);
 }
 catch (ApiException e)
 {
@@ -100,6 +101,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaXmlGetArchiveByDateRangeOptions** | [**FatturaElettronicaXmlGetArchiveByDateRangeOptions?**](FatturaElettronicaXmlGetArchiveByDateRangeOptions?.md) | Opzioni di download. | [optional]  |
 
 ### Return type
@@ -108,7 +110,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -119,16 +121,18 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **204** | No Content |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **204** | No Content |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlarchivebyfilenamepost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost**
-> void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost (string version, string companyId, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = null)
+> void ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost (string version, string companyId, string? idempotencyKey = null, FatturaElettronicaXmlGetArchiveByFileNameOptions? fatturaElettronicaXmlGetArchiveByFileNameOptions = null)
 
 Scarica un archivio ZIP di fatture XML, filtrate per nome file.
 
@@ -152,7 +156,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -160,12 +164,13 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaXmlGetArchiveByFileNameOptions = new FatturaElettronicaXmlGetArchiveByFileNameOptions?(); // FatturaElettronicaXmlGetArchiveByFileNameOptions? | Opzioni di download. (optional) 
 
             try
             {
                 // Scarica un archivio ZIP di fatture XML, filtrate per nome file.
-                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(version, companyId, fatturaElettronicaXmlGetArchiveByFileNameOptions);
+                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePost(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByFileNameOptions);
             }
             catch (ApiException  e)
             {
@@ -185,7 +190,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Scarica un archivio ZIP di fatture XML, filtrate per nome file.
-    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(version, companyId, fatturaElettronicaXmlGetArchiveByFileNameOptions);
+    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlArchivebyfilenamePostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlGetArchiveByFileNameOptions);
 }
 catch (ApiException e)
 {
@@ -201,6 +206,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaXmlGetArchiveByFileNameOptions** | [**FatturaElettronicaXmlGetArchiveByFileNameOptions?**](FatturaElettronicaXmlGetArchiveByFileNameOptions?.md) | Opzioni di download. | [optional]  |
 
 ### Return type
@@ -209,7 +215,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -220,10 +226,12 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **204** | No Content |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **204** | No Content |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -251,7 +259,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -306,7 +314,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -347,7 +355,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -402,7 +410,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -421,7 +429,7 @@ void (empty response body)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlbulkpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlBulkPost**
-> void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost (string companyId, string version, System.IO.Stream? file = null)
+> void ApiVversionCompanyIdFatturaElettronicaXmlBulkPost (string companyId, string version, string? idempotencyKey = null, System.IO.Stream? file = null)
 
 Carica in blocco fatture XML da un archivio ZIP.
 
@@ -443,7 +451,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -451,12 +459,13 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var version = "version_example";  // string | 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var file = new System.IO.MemoryStream(System.IO.File.ReadAllBytes("/path/to/file.txt"));  // System.IO.Stream? | Archivio ZIP contenente i file XML. (optional) 
 
             try
             {
                 // Carica in blocco fatture XML da un archivio ZIP.
-                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(companyId, version, file);
+                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlBulkPost(companyId, version, idempotencyKey, file);
             }
             catch (ApiException  e)
             {
@@ -476,7 +485,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Carica in blocco fatture XML da un archivio ZIP.
-    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(companyId, version, file);
+    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlBulkPostWithHttpInfo(companyId, version, idempotencyKey, file);
 }
 catch (ApiException e)
 {
@@ -492,6 +501,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **version** | **string** |  |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **file** | **System.IO.Stream?****System.IO.Stream?** | Archivio ZIP contenente i file XML. | [optional]  |
 
 ### Return type
@@ -500,7 +510,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -511,15 +521,17 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **201** | Creato. I file sono stati caricati con successo. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **201** | Creato. I file sono stati caricati con successo. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlexportpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlExportPost**
-> FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost (string version, string companyId, bool? validationOverride = null, FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = null)
+> FatturaElettronicaExportResult ApiVversionCompanyIdFatturaElettronicaXmlExportPost (string version, string companyId, bool? validationOverride = null, string? idempotencyKey = null, FatturaElettronicaExportOptions? fatturaElettronicaExportOptions = null)
 
 Esporta uno o più documenti in una fattura XML.
 
@@ -543,7 +555,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -552,12 +564,13 @@ namespace Example
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaExportOptions = new FatturaElettronicaExportOptions?(); // FatturaElettronicaExportOptions? | Opzioni di esportazione. (optional) 
 
             try
             {
                 // Esporta uno o più documenti in una fattura XML.
-                FatturaElettronicaExportResult result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlExportPost(version, companyId, validationOverride, fatturaElettronicaExportOptions);
+                FatturaElettronicaExportResult result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlExportPost(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaExportOptions);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -578,7 +591,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Esporta uno o più documenti in una fattura XML.
-    ApiResponse<FatturaElettronicaExportResult> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(version, companyId, validationOverride, fatturaElettronicaExportOptions);
+    ApiResponse<FatturaElettronicaExportResult> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlExportPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaExportOptions);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -598,6 +611,7 @@ catch (ApiException e)
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaExportOptions** | [**FatturaElettronicaExportOptions?**](FatturaElettronicaExportOptions?.md) | Opzioni di esportazione. | [optional]  |
 
 ### Return type
@@ -606,7 +620,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -617,10 +631,12 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -648,7 +664,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -709,7 +725,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -750,7 +766,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -807,7 +823,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -851,7 +867,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -922,7 +938,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -963,7 +979,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1024,7 +1040,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1066,7 +1082,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1129,7 +1145,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1149,7 +1165,7 @@ catch (ApiException e)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlidput"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlIdPut**
-> FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut (string version, string companyId, int id, bool? validationOverride = null, FatturaElettronicaXml? fatturaElettronicaXml = null)
+> FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlIdPut (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, FatturaElettronicaXml? fatturaElettronicaXml = null)
 
 Aggiorna un elemento esistente.
 
@@ -1171,7 +1187,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1181,12 +1197,13 @@ namespace Example
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID univoco dell'elemento da aggiornare.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaXml = new FatturaElettronicaXml?(); // FatturaElettronicaXml? | Istanza dell'elemento da salvare. (optional) 
 
             try
             {
                 // Aggiorna un elemento esistente.
-                FatturaElettronicaXml result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlIdPut(version, companyId, id, validationOverride, fatturaElettronicaXml);
+                FatturaElettronicaXml result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlIdPut(version, companyId, id, validationOverride, idempotencyKey, fatturaElettronicaXml);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1207,7 +1224,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Aggiorna un elemento esistente.
-    ApiResponse<FatturaElettronicaXml> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(version, companyId, id, validationOverride, fatturaElettronicaXml);
+    ApiResponse<FatturaElettronicaXml> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlIdPutWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, fatturaElettronicaXml);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1228,6 +1245,7 @@ catch (ApiException e)
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID univoco dell&#39;elemento da aggiornare. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaXml** | [**FatturaElettronicaXml?**](FatturaElettronicaXml?.md) | Istanza dell&#39;elemento da salvare. | [optional]  |
 
 ### Return type
@@ -1236,7 +1254,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1247,17 +1265,18 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di Amica.BaseEntity.ConcurrencyToken. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **422** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di Amica.BaseEntity.ConcurrencyToken. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **422** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlimportpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlImportPost**
-> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlImportPost (string version, string companyId, DateTime? dataConsegnaSdi = null, string? identificativoSdi = null, System.IO.Stream? file = null)
+> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlImportPost (string version, string companyId, string? idempotencyKey = null, DateTime? dataConsegnaSdi = null, string? identificativoSdi = null, System.IO.Stream? file = null)
 
 Importa una fattura XML.
 
@@ -1281,7 +1300,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1289,6 +1308,7 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var dataConsegnaSdi = DateTime.Parse("2013-10-20T19:20:30+01:00");  // DateTime? | Data di consegna del Sistema di Interscambio (SdI). (optional) 
             var identificativoSdi = "identificativoSdi_example";  // string? | Identificativo assegnato dal Sistema di Interscambio (SdI). (optional) 
             var file = new System.IO.MemoryStream(System.IO.File.ReadAllBytes("/path/to/file.txt"));  // System.IO.Stream? | Contenuto del file. (optional) 
@@ -1296,7 +1316,7 @@ namespace Example
             try
             {
                 // Importa una fattura XML.
-                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlImportPost(version, companyId, dataConsegnaSdi, identificativoSdi, file);
+                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlImportPost(version, companyId, idempotencyKey, dataConsegnaSdi, identificativoSdi, file);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1317,7 +1337,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Importa una fattura XML.
-    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(version, companyId, dataConsegnaSdi, identificativoSdi, file);
+    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlImportPostWithHttpInfo(version, companyId, idempotencyKey, dataConsegnaSdi, identificativoSdi, file);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1336,6 +1356,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **dataConsegnaSdi** | **DateTime?** | Data di consegna del Sistema di Interscambio (SdI). | [optional]  |
 | **identificativoSdi** | **string?** | Identificativo assegnato dal Sistema di Interscambio (SdI). | [optional]  |
 | **file** | **System.IO.Stream?****System.IO.Stream?** | Contenuto del file. | [optional]  |
@@ -1346,7 +1367,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1357,9 +1378,11 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1387,7 +1410,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1446,7 +1469,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1465,7 +1488,7 @@ catch (ApiException e)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlpairpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlPairPost**
-> void ApiVversionCompanyIdFatturaElettronicaXmlPairPost (string version, string companyId, string? fileName = null, string? progressivo = null, int? documentoId = null, System.IO.Stream? file = null)
+> void ApiVversionCompanyIdFatturaElettronicaXmlPairPost (string version, string companyId, string? idempotencyKey = null, string? fileName = null, string? progressivo = null, int? documentoId = null, System.IO.Stream? file = null)
 
 Associa una fattura XML a un documento esistente.
 
@@ -1487,7 +1510,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1495,6 +1518,7 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fileName = "fileName_example";  // string? | Nome del file. (optional) 
             var progressivo = "progressivo_example";  // string? | Progressivo del Sistema di Interscambio (SdI). (optional) 
             var documentoId = 56;  // int? | Identificativo del Amica.Documento da abbinare. (optional) 
@@ -1503,7 +1527,7 @@ namespace Example
             try
             {
                 // Associa una fattura XML a un documento esistente.
-                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPairPost(version, companyId, fileName, progressivo, documentoId, file);
+                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPairPost(version, companyId, idempotencyKey, fileName, progressivo, documentoId, file);
             }
             catch (ApiException  e)
             {
@@ -1523,7 +1547,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Associa una fattura XML a un documento esistente.
-    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(version, companyId, fileName, progressivo, documentoId, file);
+    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPairPostWithHttpInfo(version, companyId, idempotencyKey, fileName, progressivo, documentoId, file);
 }
 catch (ApiException e)
 {
@@ -1539,6 +1563,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fileName** | **string?** | Nome del file. | [optional]  |
 | **progressivo** | **string?** | Progressivo del Sistema di Interscambio (SdI). | [optional]  |
 | **documentoId** | **int?** | Identificativo del Amica.Documento da abbinare. | [optional]  |
@@ -1550,7 +1575,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1561,15 +1586,17 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlPost**
-> FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost (string version, string companyId, bool? validationOverride = null, FatturaElettronicaXml? fatturaElettronicaXml = null)
+> FatturaElettronicaXml ApiVversionCompanyIdFatturaElettronicaXmlPost (string version, string companyId, bool? validationOverride = null, string? idempotencyKey = null, FatturaElettronicaXml? fatturaElettronicaXml = null)
 
 Salva un nuovo elemento.
 
@@ -1591,7 +1618,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1600,12 +1627,13 @@ namespace Example
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaXml = new FatturaElettronicaXml?(); // FatturaElettronicaXml? | Istanza dell'elemento da salvare. (optional) 
 
             try
             {
                 // Salva un nuovo elemento.
-                FatturaElettronicaXml result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPost(version, companyId, validationOverride, fatturaElettronicaXml);
+                FatturaElettronicaXml result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPost(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaXml);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1626,7 +1654,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Salva un nuovo elemento.
-    ApiResponse<FatturaElettronicaXml> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(version, companyId, validationOverride, fatturaElettronicaXml);
+    ApiResponse<FatturaElettronicaXml> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, fatturaElettronicaXml);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1646,6 +1674,7 @@ catch (ApiException e)
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaXml** | [**FatturaElettronicaXml?**](FatturaElettronicaXml?.md) | Istanza dell&#39;elemento da salvare. | [optional]  |
 
 ### Return type
@@ -1654,7 +1683,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1665,16 +1694,17 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **201** | Creato. Restituisce l&#39;elemento salvato con il Amica.BaseEntity.ConcurrencyToken aggiornato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **409** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **201** | Creato. Restituisce l&#39;elemento salvato con il Amica.BaseEntity.ConcurrencyToken aggiornato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlsdidownloadesitipost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost**
-> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost (string version, string companyId)
+> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost (string version, string companyId, string? idempotencyKey = null)
 
 Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
 
@@ -1696,7 +1726,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1704,11 +1734,12 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
 
             try
             {
                 // Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
-                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(version, companyId);
+                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPost(version, companyId, idempotencyKey);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1729,7 +1760,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Interroga il Sistema di Interscambio (SDI) e scarica gli esiti di invio delle fatture precedentemente caricate.
-    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(version, companyId);
+    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadEsitiPostWithHttpInfo(version, companyId, idempotencyKey);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1748,6 +1779,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 
 ### Return type
 
@@ -1755,7 +1787,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1766,15 +1798,17 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlsdidownloadfatturepost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost**
-> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost (string version, string companyId)
+> List&lt;FatturaElettronicaImportResult&gt; ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost (string version, string companyId, string? idempotencyKey = null)
 
 Scarica le nuove fatture dal Sistema di Interscambio (SDI).
 
@@ -1798,7 +1832,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1806,11 +1840,12 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
 
             try
             {
                 // Scarica le nuove fatture dal Sistema di Interscambio (SDI).
-                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(version, companyId);
+                List<FatturaElettronicaImportResult> result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePost(version, companyId, idempotencyKey);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1831,7 +1866,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Scarica le nuove fatture dal Sistema di Interscambio (SDI).
-    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(version, companyId);
+    ApiResponse<List<FatturaElettronicaImportResult>> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiDownloadFatturePostWithHttpInfo(version, companyId, idempotencyKey);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1850,6 +1885,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 
 ### Return type
 
@@ -1857,7 +1893,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1868,15 +1904,17 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlsdiuploadpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost**
-> FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost (string version, string companyId, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = null)
+> FatturaElettronicaUploadResult ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost (string version, string companyId, string? idempotencyKey = null, FatturaElettronicaUploadOptions? fatturaElettronicaUploadOptions = null)
 
 Invia una o più fatture al Sistema di Interscambio (SDI).
 
@@ -1900,7 +1938,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -1908,12 +1946,13 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaUploadOptions = new FatturaElettronicaUploadOptions?(); // FatturaElettronicaUploadOptions? | Opzioni di invio. (optional) 
 
             try
             {
                 // Invia una o più fatture al Sistema di Interscambio (SDI).
-                FatturaElettronicaUploadResult result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(version, companyId, fatturaElettronicaUploadOptions);
+                FatturaElettronicaUploadResult result = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPost(version, companyId, idempotencyKey, fatturaElettronicaUploadOptions);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -1934,7 +1973,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Invia una o più fatture al Sistema di Interscambio (SDI).
-    ApiResponse<FatturaElettronicaUploadResult> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(version, companyId, fatturaElettronicaUploadOptions);
+    ApiResponse<FatturaElettronicaUploadResult> response = apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlSdiUploadPostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaUploadOptions);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -1953,6 +1992,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaUploadOptions** | [**FatturaElettronicaUploadOptions?**](FatturaElettronicaUploadOptions?.md) | Opzioni di invio. | [optional]  |
 
 ### Return type
@@ -1961,7 +2001,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -1972,16 +2012,18 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 <a id="apivversioncompanyidfatturaelettronicaxmlstylesheetpost"></a>
 # **ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost**
-> void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost (string version, string companyId, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = null)
+> void ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost (string version, string companyId, string? idempotencyKey = null, FatturaElettronicaXmlStyleSheetData? fatturaElettronicaXmlStyleSheetData = null)
 
 Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
 
@@ -2003,7 +2045,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -2011,12 +2053,13 @@ namespace Example
             var apiInstance = new FatturaElettronicaXmlApi(config);
             var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var fatturaElettronicaXmlStyleSheetData = new FatturaElettronicaXmlStyleSheetData?(); // FatturaElettronicaXmlStyleSheetData? | Opzioni di corrispondenza e stile. (optional) 
 
             try
             {
                 // Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
-                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(version, companyId, fatturaElettronicaXmlStyleSheetData);
+                apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPost(version, companyId, idempotencyKey, fatturaElettronicaXmlStyleSheetData);
             }
             catch (ApiException  e)
             {
@@ -2036,7 +2079,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Applica un foglio di stile CSS a una fattura XML esistente e restituisce il risultato.
-    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(version, companyId, fatturaElettronicaXmlStyleSheetData);
+    apiInstance.ApiVversionCompanyIdFatturaElettronicaXmlStylesheetPostWithHttpInfo(version, companyId, idempotencyKey, fatturaElettronicaXmlStyleSheetData);
 }
 catch (ApiException e)
 {
@@ -2052,6 +2095,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **fatturaElettronicaXmlStyleSheetData** | [**FatturaElettronicaXmlStyleSheetData?**](FatturaElettronicaXmlStyleSheetData?.md) | Opzioni di corrispondenza e stile. | [optional]  |
 
 ### Return type
@@ -2060,7 +2104,7 @@ void (empty response body)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
@@ -2071,10 +2115,12 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **404** | Not Found |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

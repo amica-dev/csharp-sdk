@@ -1,7 +1,7 @@
 /*
  * Amica Cloud API
  *
- * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'**App Store di Amica**. Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  - **Authorization Code con PKCE** (consigliato per app che operano per conto di un utente Amica): l'utente autorizza la tua app tramite la pagina di consenso dell'identity provider; la tua app riceve un `code` da scambiare con un access token.    ```   GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256   POST {identity-provider}/connect/token        grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri>   ```  - **Client Credentials** (per integrazioni server-to-server, senza utente interattivo):    ```   POST {identity-provider}/connect/token   Content-Type: application/x-www-form-urlencoded    grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=read write documenti contabilita   ```    > **Nota:** il flusso Client Credentials è disponibile solo per le **app private**, non per quelle pubblicate sul marketplace.  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
+ * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — il token non possiede lo scope richiesto. | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Alcune risposte `400` includono un campo `overridable` che indica se l'errore di validazione può essere ignorato impostando il parametro `validationOverride` a `true`.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
  * The version of the OpenAPI document: v3
  * Contact: assistenza@gestionaleamica.com
@@ -34,10 +34,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoComputeResult</returns>
-        DocumentoComputeResult ApiVversionCompanyIdDocumentoComputePost(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0);
+        DocumentoComputeResult ApiVversionCompanyIdDocumentoComputePost(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0);
 
         /// <summary>
         /// Calcola i totali di un documento.
@@ -48,10 +49,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoComputeResult</returns>
-        ApiResponse<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0);
+        ApiResponse<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una lista di elementi distinti.
         /// </summary>
@@ -90,9 +92,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoDocumentoIdEmitPost(string version, string companyId, int documentoId, int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoDocumentoIdEmitPost(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0);
 
         /// <summary>
         /// Emette un documento.
@@ -104,9 +107,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(string version, string companyId, int documentoId, int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0);
         /// <summary>
         /// Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
         /// </summary>
@@ -114,9 +118,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost(string version, int documentoId, string companyId, int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
 
         /// <summary>
         /// Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
@@ -128,9 +133,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(string version, int documentoId, string companyId, int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una lista di elementi.
         /// </summary>
@@ -226,10 +232,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportAccontoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportAccontoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da uno o più acconti in un documento esistente.
@@ -242,10 +249,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
         /// <summary>
         /// Importa righe da uno o più DDT in un documento esistente.
         /// </summary>
@@ -254,10 +262,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportDdtPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportDdtPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da uno o più DDT in un documento esistente.
@@ -270,10 +279,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0);
         /// <summary>
         /// Importa righe da uno o più ordini in un documento esistente.
         /// </summary>
@@ -282,10 +292,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportOrdinePost(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportOrdinePost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da uno o più ordini in un documento esistente.
@@ -298,10 +309,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0);
         /// <summary>
         /// Importa righe da uno o più preventivi in un documento esistente.
         /// </summary>
@@ -310,10 +322,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportPreventivoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportPreventivoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da uno o più preventivi in un documento esistente.
@@ -326,10 +339,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
         /// <summary>
         /// Importa righe da una o più fatture proforma in un documento esistente.
         /// </summary>
@@ -338,10 +352,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportProformaPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportProformaPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da una o più fatture proforma in un documento esistente.
@@ -354,10 +369,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0);
         /// <summary>
         /// Importa righe da uno o più resi in un documento esistente.
         /// </summary>
@@ -366,10 +382,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdImportResoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdImportResoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0);
 
         /// <summary>
         /// Importa righe da uno o più resi in un documento esistente.
@@ -382,10 +399,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0);
         /// <summary>
         /// Aggiorna un elemento esistente.
         /// </summary>
@@ -394,10 +412,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0);
 
         /// <summary>
         /// Aggiorna un elemento esistente.
@@ -410,10 +429,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una nuova istanza di un documento del tipo specificato.
         /// </summary>
@@ -447,10 +467,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;Documento&gt;</returns>
-        List<Documento> ApiVversionCompanyIdDocumentoPeriodicinvoicingPost(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0);
+        List<Documento> ApiVversionCompanyIdDocumentoPeriodicinvoicingPost(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0);
 
         /// <summary>
         /// Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
@@ -463,10 +484,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;Documento&gt;</returns>
-        ApiResponse<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0);
+        ApiResponse<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0);
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
@@ -474,10 +496,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        Documento ApiVversionCompanyIdDocumentoPost(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0);
+        Documento ApiVversionCompanyIdDocumentoPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0);
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -489,10 +512,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        ApiResponse<Documento> ApiVversionCompanyIdDocumentoPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0);
+        ApiResponse<Documento> ApiVversionCompanyIdDocumentoPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0);
         #endregion Synchronous Operations
     }
 
@@ -511,11 +535,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoComputeResult</returns>
-        System.Threading.Tasks.Task<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostAsync(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostAsync(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Calcola i totali di un documento.
@@ -526,11 +551,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoComputeResult)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoComputeResult>> ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<DocumentoComputeResult>> ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una lista di elementi distinti.
         /// </summary>
@@ -574,10 +600,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostAsync(string version, string companyId, int documentoId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostAsync(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Emette un documento.
@@ -589,10 +616,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(string version, string companyId, int documentoId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
         /// </summary>
@@ -603,10 +631,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostAsync(string version, int documentoId, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostAsync(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
@@ -618,10 +647,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(string version, int documentoId, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una lista di elementi.
         /// </summary>
@@ -732,11 +762,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da uno o più acconti in un documento esistente.
@@ -749,11 +780,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa righe da uno o più DDT in un documento esistente.
         /// </summary>
@@ -765,11 +797,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da uno o più DDT in un documento esistente.
@@ -782,11 +815,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa righe da uno o più ordini in un documento esistente.
         /// </summary>
@@ -798,11 +832,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da uno o più ordini in un documento esistente.
@@ -815,11 +850,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa righe da uno o più preventivi in un documento esistente.
         /// </summary>
@@ -831,11 +867,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da uno o più preventivi in un documento esistente.
@@ -848,11 +885,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa righe da una o più fatture proforma in un documento esistente.
         /// </summary>
@@ -864,11 +902,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da una o più fatture proforma in un documento esistente.
@@ -881,11 +920,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Importa righe da uno o più resi in un documento esistente.
         /// </summary>
@@ -897,11 +937,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Importa righe da uno o più resi in un documento esistente.
@@ -914,11 +955,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Aggiorna un elemento esistente.
         /// </summary>
@@ -930,11 +972,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Aggiorna un elemento esistente.
@@ -947,11 +990,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una nuova istanza di un documento del tipo specificato.
         /// </summary>
@@ -990,11 +1034,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;Documento&gt;</returns>
-        System.Threading.Tasks.Task<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
@@ -1007,11 +1052,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;Documento&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<Documento>>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<List<Documento>>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
@@ -1022,11 +1068,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoPostAsync(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -1038,11 +1085,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Documento>> ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         #endregion Asynchronous Operations
     }
 
@@ -1169,12 +1217,13 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoComputeResult</returns>
-        public DocumentoComputeResult ApiVversionCompanyIdDocumentoComputePost(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0)
+        public DocumentoComputeResult ApiVversionCompanyIdDocumentoComputePost(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> localVarResponse = ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(version, companyId, documentoComputeData);
+            Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> localVarResponse = ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(version, companyId, idempotencyKey, documentoComputeData);
             return localVarResponse.Data;
         }
 
@@ -1184,10 +1233,11 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoComputeResult</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1231,6 +1281,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoComputeData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoComputePost";
@@ -1242,7 +1296,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1295,13 +1349,14 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoComputeResult</returns>
-        public async System.Threading.Tasks.Task<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostAsync(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<DocumentoComputeResult> ApiVversionCompanyIdDocumentoComputePostAsync(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> localVarResponse = await ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(version, companyId, documentoComputeData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<DocumentoComputeResult> localVarResponse = await ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(version, companyId, idempotencyKey, documentoComputeData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -1311,11 +1366,12 @@ namespace Amica.Sdk.Api
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoComputeData">Dati di input per l&#39;operazione di calcolo. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoComputeResult)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoComputeResult>> ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(string version, string companyId, DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoComputeResult>> ApiVversionCompanyIdDocumentoComputePostWithHttpInfoAsync(string version, string companyId, string? idempotencyKey = default(string?), DocumentoComputeData? documentoComputeData = default(DocumentoComputeData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1359,6 +1415,10 @@ namespace Amica.Sdk.Api
 
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoComputeData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoComputePost";
@@ -1370,7 +1430,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1510,7 +1570,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1651,7 +1711,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1706,11 +1766,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoDocumentoIdEmitPost(string version, string companyId, int documentoId, int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoDocumentoIdEmitPost(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(version, companyId, documentoId);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(version, companyId, documentoId, idempotencyKey);
             return localVarResponse.Data;
         }
 
@@ -1721,9 +1782,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(string version, string companyId, int documentoId, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1765,6 +1827,10 @@ namespace Amica.Sdk.Api
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             localVarRequestOptions.PathParameters.Add("documentoId", Amica.Sdk.Client.ClientUtils.ParameterToString(documentoId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdEmitPost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -1775,7 +1841,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1829,12 +1895,13 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostAsync(string version, string companyId, int documentoId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostAsync(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(version, companyId, documentoId, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(version, companyId, documentoId, idempotencyKey, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -1845,10 +1912,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="documentoId">ID univoco del documento da emettere.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(string version, string companyId, int documentoId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfoAsync(string version, string companyId, int documentoId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -1890,6 +1958,10 @@ namespace Amica.Sdk.Api
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             localVarRequestOptions.PathParameters.Add("documentoId", Amica.Sdk.Client.ClientUtils.ParameterToString(documentoId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdEmitPost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -1900,7 +1972,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -1955,11 +2027,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost(string version, int documentoId, string companyId, int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(version, documentoId, companyId);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(version, documentoId, companyId, idempotencyKey);
             return localVarResponse.Data;
         }
 
@@ -1970,9 +2043,10 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(string version, int documentoId, string companyId, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -2014,6 +2088,10 @@ namespace Amica.Sdk.Api
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("documentoId", Amica.Sdk.Client.ClientUtils.ParameterToString(documentoId)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -2024,7 +2102,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2078,12 +2156,13 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostAsync(string version, int documentoId, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostAsync(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(version, documentoId, companyId, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(version, documentoId, companyId, idempotencyKey, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -2094,10 +2173,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="documentoId">ID univoco del documento.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(string version, int documentoId, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfoAsync(string version, int documentoId, string companyId, string? idempotencyKey = default(string?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -2139,6 +2219,10 @@ namespace Amica.Sdk.Api
             localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("documentoId", Amica.Sdk.Client.ClientUtils.ParameterToString(documentoId)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost";
             localVarRequestOptions.OperationIndex = operationIndex;
@@ -2149,7 +2233,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2304,7 +2388,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2460,7 +2544,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2582,7 +2666,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2705,7 +2789,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2833,7 +2917,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -2962,7 +3046,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3018,12 +3102,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportAccontoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportAccontoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(version, companyId, id, validationOverride, documentoImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
             return localVarResponse.Data;
         }
 
@@ -3035,10 +3120,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3085,6 +3171,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportAccontoPost";
@@ -3096,7 +3186,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3151,13 +3241,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportAccontoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(version, companyId, id, validationOverride, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -3169,11 +3260,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID degli acconti da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3220,6 +3312,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportAccontoPost";
@@ -3231,7 +3327,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3287,12 +3383,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportDdtPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportDdtPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(version, companyId, id, validationOverride, ddtImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, ddtImportData);
             return localVarResponse.Data;
         }
 
@@ -3304,10 +3401,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3354,6 +3452,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = ddtImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportDdtPost";
@@ -3365,7 +3467,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3420,13 +3522,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportDdtPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(version, companyId, id, validationOverride, ddtImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, ddtImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -3438,11 +3541,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ddtImportData">Opzioni di importazione, inclusi gli ID dei DDT da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DdtImportData? ddtImportData = default(DdtImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3489,6 +3593,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = ddtImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportDdtPost";
@@ -3500,7 +3608,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3556,12 +3664,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportOrdinePost(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportOrdinePost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(version, companyId, id, validationOverride, ordiniImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, ordiniImportData);
             return localVarResponse.Data;
         }
 
@@ -3573,10 +3682,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3623,6 +3733,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = ordiniImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportOrdinePost";
@@ -3634,7 +3748,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3689,13 +3803,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportOrdinePostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(version, companyId, id, validationOverride, ordiniImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, ordiniImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -3707,11 +3822,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="ordiniImportData">Opzioni di importazione, inclusi gli ID degli ordini da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), OrdiniImportData? ordiniImportData = default(OrdiniImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3758,6 +3874,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = ordiniImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportOrdinePost";
@@ -3769,7 +3889,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3825,12 +3945,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportPreventivoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportPreventivoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(version, companyId, id, validationOverride, documentoImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
             return localVarResponse.Data;
         }
 
@@ -3842,10 +3963,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -3892,6 +4014,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportPreventivoPost";
@@ -3903,7 +4029,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -3958,13 +4084,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportPreventivoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(version, companyId, id, validationOverride, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -3976,11 +4103,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID dei preventivi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4027,6 +4155,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportPreventivoPost";
@@ -4038,7 +4170,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4094,12 +4226,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportProformaPost(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportProformaPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(version, companyId, id, validationOverride, documentoImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
             return localVarResponse.Data;
         }
 
@@ -4111,10 +4244,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4161,6 +4295,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportProformaPost";
@@ -4172,7 +4310,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4227,13 +4365,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportProformaPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(version, companyId, id, validationOverride, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, documentoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4245,11 +4384,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoImportData">Opzioni di importazione, inclusi gli ID delle proforma da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoImportData? documentoImportData = default(DocumentoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4296,6 +4436,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documentoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportProformaPost";
@@ -4307,7 +4451,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4363,12 +4507,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdImportResoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdImportResoPost(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(version, companyId, id, validationOverride, resoImportData);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, resoImportData);
             return localVarResponse.Data;
         }
 
@@ -4380,10 +4525,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4430,6 +4576,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = resoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportResoPost";
@@ -4441,7 +4591,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4496,13 +4646,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdImportResoPostAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(version, companyId, id, validationOverride, resoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, resoImportData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4514,11 +4665,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID del documento di destinazione.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="resoImportData">Opzioni di importazione, inclusi gli ID dei resi da importare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), ResoImportData? resoImportData = default(ResoImportData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4565,6 +4717,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = resoImportData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdImportResoPost";
@@ -4576,7 +4732,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4632,12 +4788,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(version, companyId, id, validationOverride, documento);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documento);
             return localVarResponse.Data;
         }
 
@@ -4649,10 +4806,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4699,6 +4857,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documento;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdPut";
@@ -4710,7 +4872,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4765,13 +4927,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(version, companyId, id, validationOverride, documento, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, documento, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4783,11 +4946,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -4834,6 +4998,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documento;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoIdPut";
@@ -4845,7 +5013,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -4964,7 +5132,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5084,7 +5252,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5140,12 +5308,13 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;Documento&gt;</returns>
-        public List<Documento> ApiVversionCompanyIdDocumentoPeriodicinvoicingPost(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0)
+        public List<Documento> ApiVversionCompanyIdDocumentoPeriodicinvoicingPost(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<List<Documento>> localVarResponse = ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(version, companyId, id, validationOverride, periodicInvoicingData);
+            Amica.Sdk.Client.ApiResponse<List<Documento>> localVarResponse = ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, periodicInvoicingData);
             return localVarResponse.Data;
         }
 
@@ -5157,10 +5326,11 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;Documento&gt;</returns>
-        public Amica.Sdk.Client.ApiResponse<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5210,6 +5380,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = periodicInvoicingData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoPeriodicinvoicingPost";
@@ -5221,7 +5395,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5276,13 +5450,14 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;Documento&gt;</returns>
-        public async System.Threading.Tasks.Task<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<List<Documento>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<List<Documento>> localVarResponse = await ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(version, companyId, id, validationOverride, periodicInvoicingData, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<List<Documento>> localVarResponse = await ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, periodicInvoicingData, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5294,11 +5469,12 @@ namespace Amica.Sdk.Api
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="id">Non utilizzato. (optional)</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="periodicInvoicingData">Criteri e opzioni di fatturazione periodica. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;Documento&gt;)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<Documento>>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<Documento>>> ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfoAsync(string version, string companyId, int? id = default(int?), bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), PeriodicInvoicingData? periodicInvoicingData = default(PeriodicInvoicingData?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5348,6 +5524,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = periodicInvoicingData;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoPeriodicinvoicingPost";
@@ -5359,7 +5539,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5414,12 +5594,13 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>Documento</returns>
-        public Documento ApiVversionCompanyIdDocumentoPost(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0)
+        public Documento ApiVversionCompanyIdDocumentoPost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoPostWithHttpInfo(version, companyId, validationOverride, documento);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = ApiVversionCompanyIdDocumentoPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, documento);
             return localVarResponse.Data;
         }
 
@@ -5430,10 +5611,11 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Documento</returns>
-        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Documento> ApiVversionCompanyIdDocumentoPostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0)
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5479,6 +5661,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documento;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoPost";
@@ -5490,7 +5676,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {
@@ -5544,13 +5730,14 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Documento</returns>
-        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoPostAsync(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Documento> ApiVversionCompanyIdDocumentoPostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(version, companyId, validationOverride, documento, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<Documento> localVarResponse = await ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(version, companyId, validationOverride, idempotencyKey, documento, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5561,11 +5748,12 @@ namespace Amica.Sdk.Api
         /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documento">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Documento)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Documento>> ApiVversionCompanyIdDocumentoPostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), Documento? documento = default(Documento?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'version' is set
             if (version == null)
@@ -5611,6 +5799,10 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
             }
+            if (idempotencyKey != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Idempotency-Key", Amica.Sdk.Client.ClientUtils.ParameterToString(idempotencyKey)); // header parameter
+            }
             localVarRequestOptions.Data = documento;
 
             localVarRequestOptions.Operation = "DocumentoApi.ApiVversionCompanyIdDocumentoPost";
@@ -5622,7 +5814,7 @@ namespace Amica.Sdk.Api
             {
                 localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
             }
-            // authentication (oauth2) required
+            // authentication (oauth2ClientCredentials) required
             // oauth required
             if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
             {

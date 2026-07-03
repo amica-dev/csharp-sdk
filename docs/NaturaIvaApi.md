@@ -30,7 +30,7 @@ namespace Example
             config.BasePath = "http://localhost";
             // Configure Bearer token for authorization: bearer
             config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
             config.AccessToken = "YOUR_ACCESS_TOKEN";
             // Configure OAuth2 access token for authorization: oauth2
             config.AccessToken = "YOUR_ACCESS_TOKEN";
@@ -89,7 +89,7 @@ catch (ApiException e)
 
 ### Authorization
 
-[bearer](../README.md#bearer), [oauth2](../README.md#oauth2), [oauth2](../README.md#oauth2)
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
 
 ### HTTP request headers
 
