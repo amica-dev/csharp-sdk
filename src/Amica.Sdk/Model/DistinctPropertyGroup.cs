@@ -33,22 +33,31 @@ namespace Amica.Sdk.Model
     public partial class DistinctPropertyGroup : IValidatableObject
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DistinctPropertyGroup" /> class.
+        /// Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;).
         /// </summary>
-        /// <param name="key">Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;)..</param>
-        /// <param name="items">Valori distinti trovati per la chiave indicata..</param>
-        public DistinctPropertyGroup(Object key = default(Object), List<DistinctPropertyGroup> items = default(List<DistinctPropertyGroup>))
+        /// <value>Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;).</value>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum KeyEnum
         {
-            this.Key = key;
-            this.Items = items;
         }
+
 
         /// <summary>
         /// Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;).
         /// </summary>
         /// <value>Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;).</value>
         [DataMember(Name = "key", EmitDefaultValue = true)]
-        public Object Key { get; set; }
+        public KeyEnum? Key { get; set; }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DistinctPropertyGroup" /> class.
+        /// </summary>
+        /// <param name="key">Chiave di distinzione (es.: \&quot;RagioneSociale1\&quot;)..</param>
+        /// <param name="items">Valori distinti trovati per la chiave indicata..</param>
+        public DistinctPropertyGroup(KeyEnum? key = default(KeyEnum?), List<DistinctPropertyGroup> items = default(List<DistinctPropertyGroup>))
+        {
+            this.Key = key;
+            this.Items = items;
+        }
 
         /// <summary>
         /// Valori distinti trovati per la chiave indicata.

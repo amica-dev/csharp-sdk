@@ -35,7 +35,7 @@ namespace Amica.Sdk.Client
         /// Version of the package.
         /// </summary>
         /// <value>Version of the package.</value>
-        public const string Version = "3.0.0-beta4";
+        public const string Version = "3.0.0";
 
         /// <summary>
         /// Identifier for ISO 8601 DateTime Format
@@ -119,7 +119,7 @@ namespace Amica.Sdk.Client
         public Configuration()
         {
             Proxy = null;
-            UserAgent = WebUtility.UrlEncode("OpenAPI-Generator/3.0.0-beta4/csharp");
+            UserAgent = WebUtility.UrlEncode("OpenAPI-Generator/3.0.0/csharp");
             BasePath = "http://localhost";
             DefaultHeaders = new ConcurrentDictionary<string, string>();
             ApiKey = new ConcurrentDictionary<string, string>();
@@ -572,7 +572,7 @@ namespace Amica.Sdk.Client
             report += "    OS: " + System.Environment.OSVersion + "\n";
             report += "    .NET Framework Version: " + System.Environment.Version  + "\n";
             report += "    Version of the API: v3\n";
-            report += "    SDK Package Version: 3.0.0-beta4\n";
+            report += "    SDK Package Version: 3.0.0\n";
 
             return report;
         }

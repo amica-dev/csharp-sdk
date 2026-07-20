@@ -78738,11 +78738,13 @@ components:
         items:
         - null
         - null
-        key: ""
+        key: null
       properties:
         key:
           description: "Chiave di distinzione (es.: \"RagioneSociale1\")."
-          nullable: true
+          enum:
+          - null
+          type: string
         items:
           description: Valori distinti trovati per la chiave indicata.
           items:
