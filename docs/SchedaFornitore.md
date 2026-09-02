@@ -1,5 +1,5 @@
 # Amica.Sdk.Model.SchedaFornitore
-Impostazioni e informazioni di acquisto di un'Amica.Anagrafica.
+Impostazioni e informazioni di acquisto di un'`Anagrafica`.
 
 ## Properties
 
@@ -7,16 +7,16 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **int** | Identificativo univoco. | [optional] 
 **ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
-**AnagraficaId** | **int?** | Identificativo univoco di Amica.Anagrafica. | [optional] 
-**PagamentoId** | **int?** | Identificativo univoco di Amica.SchedaFornitore.Pagamento. | [optional] 
+**AnagraficaId** | **int?** | Identificativo univoco di &#x60;Anagrafica&#x60;. | [optional] 
+**PagamentoId** | **int?** | Identificativo univoco di &#x60;Pagamento&#x60;. | [optional] 
 **Pagamento** | [**Pagamento**](Pagamento.md) |  | [optional] 
-**ListinoId** | **int?** | Identificativo univoco di Amica.SchedaFornitore.Listino. | [optional] 
+**ListinoId** | **int?** | Identificativo univoco di &#x60;Listino&#x60;. | [optional] 
 **Listino** | [**Listino**](Listino.md) |  | [optional] 
-**CapoAreaId** | **int?** | Identificativo univoco di Amica.SchedaFornitore.CapoArea. | [optional] 
+**CapoAreaId** | **int?** | Identificativo univoco di &#x60;CapoArea&#x60;. | [optional] 
 **CapoArea** | [**Anagrafica**](Anagrafica.md) |  | [optional] 
-**CategoriaAnagraficaId** | **int?** | Identificativo univoco di Amica.SchedaFornitore.CategoriaAnagrafica. | [optional] 
+**CategoriaAnagraficaId** | **int?** | Identificativo univoco di &#x60;CategoriaAnagrafica&#x60;. | [optional] 
 **CategoriaAnagrafica** | [**CategoriaAnagrafica**](CategoriaAnagrafica.md) |  | [optional] 
-**CausaleIvaId** | **int?** | Identificativo univoco di Amica.SchedaFornitore.CausaleIva. | [optional] 
+**CausaleIvaId** | **int?** | Identificativo univoco di &#x60;CausaleIva&#x60;. | [optional] 
 **CausaleIva** | [**CausaleIva**](CausaleIva.md) |  | [optional] 
 **FatturatoAnnoCorrente** | **double** | Fatturato realizzato nell&#39;anno corrente. | [optional] 
 **NumeroFattureAnnoCorrente** | **int** | Numero di fatture ricevute nell&#39;anno corrente. | [optional] 

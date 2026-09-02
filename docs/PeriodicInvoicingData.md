@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **Da** | **DateTime** | Data di inizio del periodo. | [optional] 
 **A** | **DateTime** | Data di fine del periodo. | [optional] 
 **TipoImportazione** | **string** | Tipo di importazione. | [optional] 
-**CausaleDocumentoId** | **int?** | Identificativo univoco della Amica.CausaleDocumento del documento generato. | [optional] 
+**CausaleDocumentoId** | **int?** | Identificativo univoco della &#x60;CausaleDocumento&#x60; del documento generato. | [optional] 
 **DataDocumento** | **DateTime** | Data del documento generato. | [optional] 
 **TipoDocumento** | **string** | Tipo del documento generato. | [optional] 
 

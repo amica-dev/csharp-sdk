@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **int** | Identificativo univoco. | [optional] 
 **ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
-**AnagraficaId** | **int** | Identificativo univoco di Amica.Anagrafica. | [optional] 
+**AnagraficaId** | **int** | Identificativo univoco di &#x60;Anagrafica&#x60;. | [optional] 
 **RagioneSociale1** | **string** | Ragione sociale, oppure nome e cognome della persona fisica. | [optional] 
 **RagioneSociale2** | **string** | Eventuale seconda riga della ragione sociale. | [optional] 
 **Via** | **string** | Indirizzo (via). | [optional] 

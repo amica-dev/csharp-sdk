@@ -7,7 +7,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Id** | **int** | Identificativo univoco. | [optional] 
 **ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
-**CausaleIvaId** | **int** | Identificativo univoco di Amica.Reparto.CausaleIva. | [optional] 
+**CausaleIvaId** | **int** | Identificativo univoco di &#x60;CausaleIva&#x60;. | [optional] 
 **CausaleIva** | [**CausaleIva**](CausaleIva.md) |  | [optional] 
 **Numero** | **int** | Numero del reparto. | [optional] 
 **Prezzo** | **double** | Prezzo associato al reparto. | [optional] 

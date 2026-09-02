@@ -5,7 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
 | [**ApiVversionCompanyIdBeneServizioCollegadocumentoPost**](BeneServizioApi.md#apivversioncompanyidbeneserviziocollegadocumentopost) | **POST** /api/v{version}/{companyId}/BeneServizio/collegadocumento | Collega un bene/servizio a un documento. |
-| [**ApiVversionCompanyIdBeneServizioComputePost**](BeneServizioApi.md#apivversioncompanyidbeneserviziocomputepost) | **POST** /api/v{version}/{companyId}/BeneServizio/compute | Calcola gli importi di un Amica.BeneServizio (vedi Amica.BeneServizioComputeResult), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti. |
+| [**ApiVversionCompanyIdBeneServizioComputePost**](BeneServizioApi.md#apivversioncompanyidbeneserviziocomputepost) | **POST** /api/v{version}/{companyId}/BeneServizio/compute | Calcola gli importi di un &#x60;BeneServizio&#x60; (vedi &#x60;BeneServizioComputeResult&#x60;), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti. |
 | [**ApiVversionCompanyIdBeneServizioGet**](BeneServizioApi.md#apivversioncompanyidbeneservizioget) | **GET** /api/v{version}/{companyId}/BeneServizio | Restituisce una lista di elementi. |
 | [**ApiVversionCompanyIdBeneServizioIdDelete**](BeneServizioApi.md#apivversioncompanyidbeneservizioiddelete) | **DELETE** /api/v{version}/{companyId}/BeneServizio/{id} | Elimina un elemento. |
 | [**ApiVversionCompanyIdBeneServizioIdGet**](BeneServizioApi.md#apivversioncompanyidbeneservizioidget) | **GET** /api/v{version}/{companyId}/BeneServizio/{id} | Restituisce un elemento. |
@@ -122,7 +122,7 @@ catch (ApiException e)
 # **ApiVversionCompanyIdBeneServizioComputePost**
 > BeneServizioComputeResult ApiVversionCompanyIdBeneServizioComputePost (string companyId, string version, string? idempotencyKey = null, BeneServizioComputeData? beneServizioComputeData = null)
 
-Calcola gli importi di un Amica.BeneServizio (vedi Amica.BeneServizioComputeResult), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
+Calcola gli importi di un `BeneServizio` (vedi `BeneServizioComputeResult`), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
 
 ### Example
 ```csharp
@@ -155,7 +155,7 @@ namespace Example
 
             try
             {
-                // Calcola gli importi di un Amica.BeneServizio (vedi Amica.BeneServizioComputeResult), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
+                // Calcola gli importi di un `BeneServizio` (vedi `BeneServizioComputeResult`), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
                 BeneServizioComputeResult result = apiInstance.ApiVversionCompanyIdBeneServizioComputePost(companyId, version, idempotencyKey, beneServizioComputeData);
                 Debug.WriteLine(result);
             }
@@ -176,7 +176,7 @@ This returns an ApiResponse object which contains the response data, status code
 ```csharp
 try
 {
-    // Calcola gli importi di un Amica.BeneServizio (vedi Amica.BeneServizioComputeResult), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
+    // Calcola gli importi di un `BeneServizio` (vedi `BeneServizioComputeResult`), considerando parametri come quantità movimentata, IVA applicata, eventuali sconti.
     ApiResponse<BeneServizioComputeResult> response = apiInstance.ApiVversionCompanyIdBeneServizioComputePostWithHttpInfo(companyId, version, idempotencyKey, beneServizioComputeData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
@@ -648,7 +648,7 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di Amica.BaseEntity.ConcurrencyToken. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di &#x60;ConcurrencyToken&#x60;. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **422** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
@@ -859,7 +859,7 @@ catch (ApiException e)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **201** | Creato. Restituisce l&#39;elemento salvato con il Amica.BaseEntity.ConcurrencyToken aggiornato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **201** | Creato. Restituisce l&#39;elemento salvato con il &#x60;ConcurrencyToken&#x60; aggiornato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **409** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
 | **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |

@@ -1,5 +1,5 @@
 # Amica.Sdk.Model.DocumentoComputeResult
-Restituito dal metodo M:Amica.DocumentoService.Compute(Amica.DocumentoComputeData,Amica.RequestSettings,System.Boolean) di `DocumentoService`.
+Restituito dal metodo `Compute` di `DocumentoService`.
 
 ## Properties
 

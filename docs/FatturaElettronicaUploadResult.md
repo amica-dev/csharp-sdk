@@ -1,5 +1,5 @@
 # Amica.Sdk.Model.FatturaElettronicaUploadResult
-Esito della chiamata al metodo M:Amica.FatturaElettronicaXmlService.SdiUpload(Amica.FatturaElettronicaUploadOptions,Amica.RequestSettings) di `FatturaElettronicaXmlService`.
+Esito della chiamata al metodo `SdiUpload` di `FatturaElettronicaXmlService`.
 
 ## Properties
 
