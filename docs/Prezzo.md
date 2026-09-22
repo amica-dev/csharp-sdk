@@ -1,25 +1,24 @@
 # Amica.Sdk.Model.Prezzo
-Prezzo di listino.
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Id** | **int** | Identificativo univoco. | [optional] 
-**ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
-**ListinoId** | **int?** | Identificativo univoco di &#x60;Listino&#x60;. | [optional] 
-**ArticoloId** | **int?** | Identificativo univoco di &#x60;Articolo&#x60;. In alternativa, usare &#x60;PrestazioneId&#x60;. | [optional] 
+**Id** | **int** |  | [optional] 
+**ConcurrencyToken** | **int** |  | [optional] 
+**ListinoId** | **int?** |  | [optional] 
+**ArticoloId** | **int?** |  | [optional] 
 **Articolo** | [**Articolo**](Articolo.md) |  | [optional] 
-**PrestazioneId** | **int?** | Identificativo univoco di &#x60;Prestazione&#x60;. In alternativa, usare &#x60;ArticoloId&#x60;. | [optional] 
+**PrestazioneId** | **int?** |  | [optional] 
 **Prestazione** | [**Articolo**](Articolo.md) |  | [optional] 
-**Importo** | **double** | Importo (prezzo). | [optional] 
-**Sconto1** | **double** | Primo sconto percentuale, applicato sul prezzo del bene o della prestazione. | [optional] 
-**Sconto2** | **double** | Secondo sconto percentuale, applicato a seguito dell&#39;applicazione di &#x60;Sconto1&#x60; | [optional] 
-**Sconto3** | **double** | Terzo sconto percentuale, applicato a seguito dell&#39;applicazione di &#x60;Sconto2&#x60; | [optional] 
-**Sconto4** | **double** | Quarto sconto percentuale, applicato a seguito dell&#39;applicazione di &#x60;Sconto3&#x60; | [optional] 
-**Ricarico** | **double** | Ricarico (percentuale) da applicare sul costo del prodotto (o della prestazione). Se utilizzato, &#x60;Importo&#x60; viene ignorato. | [optional] 
-**ProvvigioneAgente** | **double?** | Provvigione corrisposta all&#39;agente, in percentuale. | [optional] 
-**ProvvigioneCapoArea** | **double?** | Provvigione corrisposta al capo area, in percentuale. | [optional] 
+**Importo** | **double** |  | [optional] 
+**Sconto1** | **double** |  | [optional] 
+**Sconto2** | **double** |  | [optional] 
+**Sconto3** | **double** |  | [optional] 
+**Sconto4** | **double** |  | [optional] 
+**Ricarico** | **double** |  | [optional] 
+**ProvvigioneAgente** | **double?** |  | [optional] 
+**ProvvigioneCapoArea** | **double?** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

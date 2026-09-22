@@ -123,7 +123,6 @@ docs/RegistrazioneContabileApi.md
 docs/RegistrazioneContabileRiga.md
 docs/RegistrazioneContabileValidationResult.md
 docs/Reparto.md
-docs/RepartoApi.md
 docs/ResoImportData.md
 docs/RicercaArticolo.md
 docs/RisorsaFinanziaria.md
@@ -185,7 +184,6 @@ src/Amica.Sdk.Test/Api/PrezzoApiTests.cs
 src/Amica.Sdk.Test/Api/ProduttoreApiTests.cs
 src/Amica.Sdk.Test/Api/ProgressivoInvioApiTests.cs
 src/Amica.Sdk.Test/Api/RegistrazioneContabileApiTests.cs
-src/Amica.Sdk.Test/Api/RepartoApiTests.cs
 src/Amica.Sdk.Test/Api/RisorsaFinanziariaApiTests.cs
 src/Amica.Sdk.Test/Api/ScadenzaApiTests.cs
 src/Amica.Sdk.Test/Api/SituazioneApiTests.cs
@@ -326,7 +324,6 @@ src/Amica.Sdk/Api/PrezzoApi.cs
 src/Amica.Sdk/Api/ProduttoreApi.cs
 src/Amica.Sdk/Api/ProgressivoInvioApi.cs
 src/Amica.Sdk/Api/RegistrazioneContabileApi.cs
-src/Amica.Sdk/Api/RepartoApi.cs
 src/Amica.Sdk/Api/RisorsaFinanziariaApi.cs
 src/Amica.Sdk/Api/ScadenzaApi.cs
 src/Amica.Sdk/Api/SituazioneApi.cs

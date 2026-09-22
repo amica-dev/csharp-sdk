@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.0.2
+ * The version of the OpenAPI document: 3.1.0
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -27,15 +27,14 @@ using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
 namespace Amica.Sdk.Model
 {
     /// <summary>
-    /// Risorsa finanziaria.
+    /// RisorsaFinanziaria
     /// </summary>
     [DataContract(Name = "RisorsaFinanziaria")]
     public partial class RisorsaFinanziaria : IValidatableObject
     {
         /// <summary>
-        /// Tipologia di risorsa finanziaria.
+        /// Defines Tipologia
         /// </summary>
-        /// <value>Tipologia di risorsa finanziaria.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum TipologiaEnum
         {
@@ -66,12 +65,8 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Tipologia di risorsa finanziaria.
+        /// Gets or Sets Tipologia
         /// </summary>
-        /// <value>Tipologia di risorsa finanziaria.</value>
-        /*
-        <example>Banca</example>
-        */
         [DataMember(Name = "tipologia", EmitDefaultValue = false)]
         public TipologiaEnum? Tipologia { get; set; }
         /// <summary>
@@ -82,36 +77,36 @@ namespace Amica.Sdk.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="RisorsaFinanziaria" /> class.
         /// </summary>
-        /// <param name="id">Identificativo univoco..</param>
-        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
-        /// <param name="nome">Nome o descrizione. (required).</param>
-        /// <param name="indirizzo">Indirizzo..</param>
-        /// <param name="localit">Città, comune o altra denominazione di località..</param>
-        /// <param name="cap">CAP o codice di zona..</param>
-        /// <param name="provincia">Provincia o denominazione dell&#39;area..</param>
-        /// <param name="telefono1">Numero di telefono principale..</param>
-        /// <param name="telefono2">Numero di telefono secondario..</param>
-        /// <param name="fax">Numero di fax..</param>
-        /// <param name="contatto1Nome">Nome del contatto..</param>
-        /// <param name="contatto1Incarico">Qualifica o ruolo del contatto..</param>
-        /// <param name="contatto1Telefono1">Telefono principale del contatto..</param>
-        /// <param name="contatto1Telefono2">Telefono secondario del contatto..</param>
-        /// <param name="contatto1EMail">Email del contatto..</param>
-        /// <param name="contatto2Nome">Nome del contatto secondario..</param>
-        /// <param name="contatto2Incarico">Qualifica o ruolo del contatto secondario..</param>
-        /// <param name="contatto2Telefono1">Numero di telefono del contatto secondario..</param>
-        /// <param name="contatto2Telefono2">Numero di telefono alternativo del contatto secondario..</param>
-        /// <param name="contatto2EMail">Email del contatto secondario..</param>
-        /// <param name="codiceAbi">Codice ABI..</param>
-        /// <param name="codiceCab">Codice CAB..</param>
-        /// <param name="contoCorrente">Numero di conto corrente..</param>
-        /// <param name="codiceCin">Codice CIN..</param>
-        /// <param name="codiceCinEur">CIN EUR..</param>
-        /// <param name="codiceCinPaese">Codice CIN della nazione..</param>
-        /// <param name="codiceSwift">Codice SWIFT..</param>
-        /// <param name="codiceIban">Codice IBAN..</param>
-        /// <param name="web">Sito web..</param>
-        /// <param name="tipologia">Tipologia di risorsa finanziaria..</param>
+        /// <param name="id">id.</param>
+        /// <param name="concurrencyToken">concurrencyToken.</param>
+        /// <param name="nome">nome (required).</param>
+        /// <param name="indirizzo">indirizzo.</param>
+        /// <param name="localit">localit.</param>
+        /// <param name="cap">cap.</param>
+        /// <param name="provincia">provincia.</param>
+        /// <param name="telefono1">telefono1.</param>
+        /// <param name="telefono2">telefono2.</param>
+        /// <param name="fax">fax.</param>
+        /// <param name="contatto1Nome">contatto1Nome.</param>
+        /// <param name="contatto1Incarico">contatto1Incarico.</param>
+        /// <param name="contatto1Telefono1">contatto1Telefono1.</param>
+        /// <param name="contatto1Telefono2">contatto1Telefono2.</param>
+        /// <param name="contatto1EMail">contatto1EMail.</param>
+        /// <param name="contatto2Nome">contatto2Nome.</param>
+        /// <param name="contatto2Incarico">contatto2Incarico.</param>
+        /// <param name="contatto2Telefono1">contatto2Telefono1.</param>
+        /// <param name="contatto2Telefono2">contatto2Telefono2.</param>
+        /// <param name="contatto2EMail">contatto2EMail.</param>
+        /// <param name="codiceAbi">codiceAbi.</param>
+        /// <param name="codiceCab">codiceCab.</param>
+        /// <param name="contoCorrente">contoCorrente.</param>
+        /// <param name="codiceCin">codiceCin.</param>
+        /// <param name="codiceCinEur">codiceCinEur.</param>
+        /// <param name="codiceCinPaese">codiceCinPaese.</param>
+        /// <param name="codiceSwift">codiceSwift.</param>
+        /// <param name="codiceIban">codiceIban.</param>
+        /// <param name="web">web.</param>
+        /// <param name="tipologia">tipologia.</param>
         public RisorsaFinanziaria(int id = default(int), int concurrencyToken = default(int), string nome = default(string), string indirizzo = default(string), string localit = default(string), string cap = default(string), string provincia = default(string), string telefono1 = default(string), string telefono2 = default(string), string fax = default(string), string contatto1Nome = default(string), string contatto1Incarico = default(string), string contatto1Telefono1 = default(string), string contatto1Telefono2 = default(string), string contatto1EMail = default(string), string contatto2Nome = default(string), string contatto2Incarico = default(string), string contatto2Telefono1 = default(string), string contatto2Telefono2 = default(string), string contatto2EMail = default(string), string codiceAbi = default(string), string codiceCab = default(string), string contoCorrente = default(string), string codiceCin = default(string), string codiceCinEur = default(string), string codiceCinPaese = default(string), string codiceSwift = default(string), string codiceIban = default(string), string web = default(string), TipologiaEnum? tipologia = default(TipologiaEnum?))
         {
             // to ensure "nome" is required (not null)
@@ -152,292 +147,176 @@ namespace Amica.Sdk.Model
         }
 
         /// <summary>
-        /// Identificativo univoco.
+        /// Gets or Sets Id
         /// </summary>
-        /// <value>Identificativo univoco.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "id", EmitDefaultValue = false)]
         public int Id { get; set; }
 
         /// <summary>
-        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// Gets or Sets ConcurrencyToken
         /// </summary>
-        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
-        /*
-        <example>12345</example>
-        */
         [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
         public int ConcurrencyToken { get; set; }
 
         /// <summary>
-        /// Nome o descrizione.
+        /// Gets or Sets Nome
         /// </summary>
-        /// <value>Nome o descrizione.</value>
-        /*
-        <example>Conto Intesa Sanpaolo</example>
-        */
         [DataMember(Name = "nome", IsRequired = true, EmitDefaultValue = true)]
         public string Nome { get; set; }
 
         /// <summary>
-        /// Indirizzo.
+        /// Gets or Sets Indirizzo
         /// </summary>
-        /// <value>Indirizzo.</value>
-        /*
-        <example>Via Roma 1</example>
-        */
         [DataMember(Name = "indirizzo", EmitDefaultValue = true)]
         public string Indirizzo { get; set; }
 
         /// <summary>
-        /// Città, comune o altra denominazione di località.
+        /// Gets or Sets Localit
         /// </summary>
-        /// <value>Città, comune o altra denominazione di località.</value>
-        /*
-        <example>Milano</example>
-        */
         [DataMember(Name = "località", EmitDefaultValue = true)]
         public string Localit { get; set; }
 
         /// <summary>
-        /// CAP o codice di zona.
+        /// Gets or Sets Cap
         /// </summary>
-        /// <value>CAP o codice di zona.</value>
-        /*
-        <example>20121</example>
-        */
         [DataMember(Name = "cap", EmitDefaultValue = true)]
         public string Cap { get; set; }
 
         /// <summary>
-        /// Provincia o denominazione dell&#39;area.
+        /// Gets or Sets Provincia
         /// </summary>
-        /// <value>Provincia o denominazione dell&#39;area.</value>
-        /*
-        <example>MI</example>
-        */
         [DataMember(Name = "provincia", EmitDefaultValue = true)]
         public string Provincia { get; set; }
 
         /// <summary>
-        /// Numero di telefono principale.
+        /// Gets or Sets Telefono1
         /// </summary>
-        /// <value>Numero di telefono principale.</value>
-        /*
-        <example>02 1234567</example>
-        */
         [DataMember(Name = "telefono1", EmitDefaultValue = true)]
         public string Telefono1 { get; set; }
 
         /// <summary>
-        /// Numero di telefono secondario.
+        /// Gets or Sets Telefono2
         /// </summary>
-        /// <value>Numero di telefono secondario.</value>
-        /*
-        <example>02 7654321</example>
-        */
         [DataMember(Name = "telefono2", EmitDefaultValue = true)]
         public string Telefono2 { get; set; }
 
         /// <summary>
-        /// Numero di fax.
+        /// Gets or Sets Fax
         /// </summary>
-        /// <value>Numero di fax.</value>
-        /*
-        <example>02 1234568</example>
-        */
         [DataMember(Name = "fax", EmitDefaultValue = true)]
         public string Fax { get; set; }
 
         /// <summary>
-        /// Nome del contatto.
+        /// Gets or Sets Contatto1Nome
         /// </summary>
-        /// <value>Nome del contatto.</value>
-        /*
-        <example>Mario Rossi</example>
-        */
         [DataMember(Name = "contatto1Nome", EmitDefaultValue = true)]
         public string Contatto1Nome { get; set; }
 
         /// <summary>
-        /// Qualifica o ruolo del contatto.
+        /// Gets or Sets Contatto1Incarico
         /// </summary>
-        /// <value>Qualifica o ruolo del contatto.</value>
-        /*
-        <example>Direttore di filiale</example>
-        */
         [DataMember(Name = "contatto1Incarico", EmitDefaultValue = true)]
         public string Contatto1Incarico { get; set; }
 
         /// <summary>
-        /// Telefono principale del contatto.
+        /// Gets or Sets Contatto1Telefono1
         /// </summary>
-        /// <value>Telefono principale del contatto.</value>
-        /*
-        <example>02 1234567</example>
-        */
         [DataMember(Name = "contatto1Telefono1", EmitDefaultValue = true)]
         public string Contatto1Telefono1 { get; set; }
 
         /// <summary>
-        /// Telefono secondario del contatto.
+        /// Gets or Sets Contatto1Telefono2
         /// </summary>
-        /// <value>Telefono secondario del contatto.</value>
-        /*
-        <example>340 1234567</example>
-        */
         [DataMember(Name = "contatto1Telefono2", EmitDefaultValue = true)]
         public string Contatto1Telefono2 { get; set; }
 
         /// <summary>
-        /// Email del contatto.
+        /// Gets or Sets Contatto1EMail
         /// </summary>
-        /// <value>Email del contatto.</value>
-        /*
-        <example>mario.rossi@example.com</example>
-        */
         [DataMember(Name = "contatto1EMail", EmitDefaultValue = true)]
         public string Contatto1EMail { get; set; }
 
         /// <summary>
-        /// Nome del contatto secondario.
+        /// Gets or Sets Contatto2Nome
         /// </summary>
-        /// <value>Nome del contatto secondario.</value>
-        /*
-        <example>Luigi Bianchi</example>
-        */
         [DataMember(Name = "contatto2Nome", EmitDefaultValue = true)]
         public string Contatto2Nome { get; set; }
 
         /// <summary>
-        /// Qualifica o ruolo del contatto secondario.
+        /// Gets or Sets Contatto2Incarico
         /// </summary>
-        /// <value>Qualifica o ruolo del contatto secondario.</value>
-        /*
-        <example>Responsabile clienti</example>
-        */
         [DataMember(Name = "contatto2Incarico", EmitDefaultValue = true)]
         public string Contatto2Incarico { get; set; }
 
         /// <summary>
-        /// Numero di telefono del contatto secondario.
+        /// Gets or Sets Contatto2Telefono1
         /// </summary>
-        /// <value>Numero di telefono del contatto secondario.</value>
-        /*
-        <example>02 7654321</example>
-        */
         [DataMember(Name = "contatto2Telefono1", EmitDefaultValue = true)]
         public string Contatto2Telefono1 { get; set; }
 
         /// <summary>
-        /// Numero di telefono alternativo del contatto secondario.
+        /// Gets or Sets Contatto2Telefono2
         /// </summary>
-        /// <value>Numero di telefono alternativo del contatto secondario.</value>
-        /*
-        <example>340 7654321</example>
-        */
         [DataMember(Name = "contatto2Telefono2", EmitDefaultValue = true)]
         public string Contatto2Telefono2 { get; set; }
 
         /// <summary>
-        /// Email del contatto secondario.
+        /// Gets or Sets Contatto2EMail
         /// </summary>
-        /// <value>Email del contatto secondario.</value>
-        /*
-        <example>luigi.bianchi@example.com</example>
-        */
         [DataMember(Name = "contatto2EMail", EmitDefaultValue = true)]
         public string Contatto2EMail { get; set; }
 
         /// <summary>
-        /// Codice ABI.
+        /// Gets or Sets CodiceAbi
         /// </summary>
-        /// <value>Codice ABI.</value>
-        /*
-        <example>05428</example>
-        */
         [DataMember(Name = "codiceAbi", EmitDefaultValue = true)]
         public string CodiceAbi { get; set; }
 
         /// <summary>
-        /// Codice CAB.
+        /// Gets or Sets CodiceCab
         /// </summary>
-        /// <value>Codice CAB.</value>
-        /*
-        <example>11101</example>
-        */
         [DataMember(Name = "codiceCab", EmitDefaultValue = true)]
         public string CodiceCab { get; set; }
 
         /// <summary>
-        /// Numero di conto corrente.
+        /// Gets or Sets ContoCorrente
         /// </summary>
-        /// <value>Numero di conto corrente.</value>
-        /*
-        <example>000000123456</example>
-        */
         [DataMember(Name = "contoCorrente", EmitDefaultValue = true)]
         public string ContoCorrente { get; set; }
 
         /// <summary>
-        /// Codice CIN.
+        /// Gets or Sets CodiceCin
         /// </summary>
-        /// <value>Codice CIN.</value>
-        /*
-        <example>X</example>
-        */
         [DataMember(Name = "codiceCin", EmitDefaultValue = true)]
         public string CodiceCin { get; set; }
 
         /// <summary>
-        /// CIN EUR.
+        /// Gets or Sets CodiceCinEur
         /// </summary>
-        /// <value>CIN EUR.</value>
-        /*
-        <example>60</example>
-        */
         [DataMember(Name = "codiceCinEur", EmitDefaultValue = true)]
         public string CodiceCinEur { get; set; }
 
         /// <summary>
-        /// Codice CIN della nazione.
+        /// Gets or Sets CodiceCinPaese
         /// </summary>
-        /// <value>Codice CIN della nazione.</value>
-        /*
-        <example>IT</example>
-        */
         [DataMember(Name = "codiceCinPaese", EmitDefaultValue = true)]
         public string CodiceCinPaese { get; set; }
 
         /// <summary>
-        /// Codice SWIFT.
+        /// Gets or Sets CodiceSwift
         /// </summary>
-        /// <value>Codice SWIFT.</value>
-        /*
-        <example>BCITITMM</example>
-        */
         [DataMember(Name = "codiceSwift", EmitDefaultValue = true)]
         public string CodiceSwift { get; set; }
 
         /// <summary>
-        /// Codice IBAN.
+        /// Gets or Sets CodiceIban
         /// </summary>
-        /// <value>Codice IBAN.</value>
-        /*
-        <example>IT60X0542811101000000123456</example>
-        */
         [DataMember(Name = "codiceIban", EmitDefaultValue = true)]
         public string CodiceIban { get; set; }
 
         /// <summary>
-        /// Sito web.
+        /// Gets or Sets Web
         /// </summary>
-        /// <value>Sito web.</value>
-        /*
-        <example>https://www.example.com</example>
-        */
         [DataMember(Name = "web", EmitDefaultValue = true)]
         public string Web { get; set; }
 

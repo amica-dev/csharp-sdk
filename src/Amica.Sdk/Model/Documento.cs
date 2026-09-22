@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.0.2
+ * The version of the OpenAPI document: 3.1.0
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -27,15 +27,14 @@ using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
 namespace Amica.Sdk.Model
 {
     /// <summary>
-    /// Un documento (fattura, documento di trasporto, ecc.)
+    /// Documento
     /// </summary>
     [DataContract(Name = "Documento")]
     public partial class Documento : IValidatableObject
     {
         /// <summary>
-        /// Tipologia del documento.
+        /// Defines TipoDocumento
         /// </summary>
-        /// <value>Tipologia del documento.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum TipoDocumentoEnum
         {
@@ -336,15 +335,13 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Tipologia del documento.
+        /// Gets or Sets TipoDocumento
         /// </summary>
-        /// <value>Tipologia del documento.</value>
         [DataMember(Name = "tipoDocumento", EmitDefaultValue = false)]
         public TipoDocumentoEnum? TipoDocumento { get; set; }
         /// <summary>
-        /// Tipo di documento fiscale.
+        /// Defines DocumentoFiscale
         /// </summary>
-        /// <value>Tipo di documento fiscale.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum DocumentoFiscaleEnum
         {
@@ -369,15 +366,13 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Tipo di documento fiscale.
+        /// Gets or Sets DocumentoFiscale
         /// </summary>
-        /// <value>Tipo di documento fiscale.</value>
         [DataMember(Name = "documentoFiscale", EmitDefaultValue = false)]
         public DocumentoFiscaleEnum? DocumentoFiscale { get; set; }
         /// <summary>
-        /// Classe del documento.
+        /// Defines ClasseDocumento
         /// </summary>
-        /// <value>Classe del documento.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ClasseDocumentoEnum
         {
@@ -396,15 +391,13 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Classe del documento.
+        /// Gets or Sets ClasseDocumento
         /// </summary>
-        /// <value>Classe del documento.</value>
         [DataMember(Name = "classeDocumento", EmitDefaultValue = false)]
         public ClasseDocumentoEnum? ClasseDocumento { get; set; }
         /// <summary>
-        /// Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.
+        /// Defines Stato
         /// </summary>
-        /// <value>Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum StatoEnum
         {
@@ -471,110 +464,109 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.
+        /// Gets or Sets Stato
         /// </summary>
-        /// <value>Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso.</value>
         [DataMember(Name = "stato", EmitDefaultValue = false)]
         public StatoEnum? Stato { get; set; }
         /// <summary>
         /// Initializes a new instance of the <see cref="Documento" /> class.
         /// </summary>
-        /// <param name="id">Identificativo univoco..</param>
-        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
-        /// <param name="anagraficaId">Identificativo univoco di &#x60;Anagrafica&#x60;..</param>
+        /// <param name="id">id.</param>
+        /// <param name="concurrencyToken">concurrencyToken.</param>
+        /// <param name="anagraficaId">anagraficaId.</param>
         /// <param name="anagrafica">anagrafica.</param>
-        /// <param name="causaleDocumentoId">Identificativo univoco di &#x60;CausaleDocumento&#x60;..</param>
+        /// <param name="causaleDocumentoId">causaleDocumentoId.</param>
         /// <param name="causaleDocumento">causaleDocumento.</param>
-        /// <param name="agenteId">Identificativo univoco di &#x60;Anagrafica&#x60; dell&#39;agente..</param>
+        /// <param name="agenteId">agenteId.</param>
         /// <param name="agente">agente.</param>
-        /// <param name="pagamentoId">Identificativo univoco di &#x60;Pagamento&#x60;..</param>
+        /// <param name="pagamentoId">pagamentoId.</param>
         /// <param name="pagamento">pagamento.</param>
-        /// <param name="vettoreId">Identificativo univoco di &#x60;Anagrafica&#x60; del vettore..</param>
+        /// <param name="vettoreId">vettoreId.</param>
         /// <param name="vettore">vettore.</param>
-        /// <param name="cassaPrevidenzialeCausaleIvaId">Identificativo univoco della causale IVA della cassa previdenziale..</param>
-        /// <param name="modelloId">Obsoleto. Non utilizzare..</param>
+        /// <param name="cassaPrevidenzialeCausaleIvaId">cassaPrevidenzialeCausaleIvaId.</param>
+        /// <param name="modelloId">modelloId.</param>
         /// <param name="cassaPrevidenzialeCausaleIva">cassaPrevidenzialeCausaleIva.</param>
-        /// <param name="destinazioneId">Identificativo univoco di &#x60;Indirizzo&#x60; di destinazione..</param>
+        /// <param name="destinazioneId">destinazioneId.</param>
         /// <param name="destinazione">destinazione.</param>
-        /// <param name="valutaId">Identificativo univoco di &#x60;Valuta&#x60;..</param>
+        /// <param name="valutaId">valutaId.</param>
         /// <param name="valuta">valuta.</param>
-        /// <param name="causaleMagazzinoId">Identificativo univoco di &#x60;CausaleMagazzino&#x60;..</param>
+        /// <param name="causaleMagazzinoId">causaleMagazzinoId.</param>
         /// <param name="causaleMagazzino">causaleMagazzino.</param>
-        /// <param name="iva1CausaleIvaId">Identificativo univoco della prima causale IVA..</param>
+        /// <param name="iva1CausaleIvaId">iva1CausaleIvaId.</param>
         /// <param name="iva1CausaleIva">iva1CausaleIva.</param>
-        /// <param name="iva2CausaleIvaId">Identificativo univoco della seconda causale IVA..</param>
+        /// <param name="iva2CausaleIvaId">iva2CausaleIvaId.</param>
         /// <param name="iva2CausaleIva">iva2CausaleIva.</param>
-        /// <param name="iva3CausaleIvaId">Identificativo univoco della terza causale IVA..</param>
+        /// <param name="iva3CausaleIvaId">iva3CausaleIvaId.</param>
         /// <param name="iva3CausaleIva">iva3CausaleIva.</param>
-        /// <param name="iva4CausaleIvaId">Identificativo univoco della quarta causale IVA..</param>
+        /// <param name="iva4CausaleIvaId">iva4CausaleIvaId.</param>
         /// <param name="iva4CausaleIva">iva4CausaleIva.</param>
-        /// <param name="tipoDocumento">Tipologia del documento..</param>
-        /// <param name="documentoFiscale">Tipo di documento fiscale..</param>
-        /// <param name="destinazioneDiversa">Indica se la destinazione della merce è diversa dall&#39;indirizzo principale..</param>
-        /// <param name="ivaEsclusa">Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali)..</param>
-        /// <param name="ritenutaIncludeCassaPrevidenziale">Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento..</param>
-        /// <param name="classeDocumento">Classe del documento..</param>
-        /// <param name="contatto">Persona di contatto preferita, &#x60;AnagraficaNominativo1&#x60; oppure &#x60;AnagraficaNominativo2&#x60;..</param>
-        /// <param name="numeroParteTesto">La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis..</param>
-        /// <param name="numeroParteNumerica">Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis..</param>
-        /// <param name="data">Data del documento..</param>
-        /// <param name="stato">Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso..</param>
-        /// <param name="dataScadenzaPreventivo">La data di scadenza, nel caso in cui il documento sia un preventivo..</param>
-        /// <param name="dataInizioScadenze">Data della prima scadenza di pagamento..</param>
-        /// <param name="scontoPercentuale">Sconto, in percentuale, da calcolare sull&#39;intero importo del documento..</param>
-        /// <param name="scontoIncondizionatoImporto">Sconto, in valuta, da applicare all&#39;intero importo del documento..</param>
-        /// <param name="abbuonoImporto">Importo dell&#39;abbuono..</param>
-        /// <param name="ritenutaPercentuale">Quota della ritenuta da applicare al documento..</param>
-        /// <param name="enasarcoPercentuale">Contributo Enasarco da applicare al documento..</param>
-        /// <param name="enasarcoImporto">Importo Enasarco..</param>
-        /// <param name="quotaRitenutaSuImponibile">Quota dell&#39;imponibile su cui applicare la ritenuta..</param>
-        /// <param name="cambio">Tasso di cambio rispetto all&#39;Euro, nel caso in cui la &#x60;Valuta&#x60; del documento non sia l&#39;Euro..</param>
-        /// <param name="cassaPrevidenzialeNome">Nome della cassa previdenziale applicata al documento..</param>
-        /// <param name="cassaPrevidenzialePercentuale">Aliquota (percentuale) della cassa previdenziale da applicare al documento..</param>
-        /// <param name="note">Note..</param>
-        /// <param name="scontoPagamentoPercentuale">Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta)..</param>
-        /// <param name="iva1Imponibile">Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60;.</param>
-        /// <param name="iva2Imponibile">Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60;.</param>
-        /// <param name="iva3Imponibile">Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60;.</param>
-        /// <param name="iva4Imponibile">Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60;.</param>
-        /// <param name="iva1ImponibileLordo">Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60; al lordo di eventuali sconti di fattura..</param>
-        /// <param name="iva2ImponibileLordo">Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60; al lordo di eventuali sconti di fattura..</param>
-        /// <param name="iva3ImponibileLordo">Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60; al lordo di eventuali sconti di fattura..</param>
-        /// <param name="iva4ImponibileLordo">Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60; al lordo di eventuali sconti di fattura..</param>
-        /// <param name="iva1Imposta">Totale imposta per &#x60;Iva1CausaleIva&#x60;.</param>
-        /// <param name="iva2Imposta">Totale imposta per &#x60;Iva2CausaleIva&#x60;.</param>
-        /// <param name="iva3Imposta">Totale imposta per &#x60;Iva3CausaleIva&#x60;.</param>
-        /// <param name="iva4Imposta">Totale imposta per &#x60;Iva4CausaleIva&#x60;.</param>
-        /// <param name="totaleRitenuta">Importo della ritenuta..</param>
-        /// <param name="totaleCassaPrevidenziale">Importo della cassa previdenziale..</param>
-        /// <param name="totaleSpese">Totale delle spese esenti e non esenti..</param>
-        /// <param name="totaleSpeseEsenti">Totale delle spese esenti da IVA..</param>
-        /// <param name="totaleSpeseNonEsenti">Totale delle spese non esenti da IVA..</param>
-        /// <param name="totaleMerce">Importo della merce..</param>
-        /// <param name="totaleMerceScontata">Importo della merce scontata..</param>
-        /// <param name="totaleImponibile">Totale imponibile, considerando tutte le causali IVA coinvolte..</param>
-        /// <param name="totaleImposta">Imposta IVA..</param>
-        /// <param name="totaleEsente">Importi esenti da IVA..</param>
-        /// <param name="totaleDocumento">Importo totale del documento..</param>
-        /// <param name="nettoAPagare">Netto a pagare..</param>
-        /// <param name="totaleSplitPayment">Importo dello split payment..</param>
-        /// <param name="bollo">Importo del bollo..</param>
-        /// <param name="xmlFileName">Nome del file XML..</param>
-        /// <param name="riferimentoAmministrazione">Numero di riferimento dell&#39;amministrazione..</param>
+        /// <param name="tipoDocumento">tipoDocumento.</param>
+        /// <param name="documentoFiscale">documentoFiscale.</param>
+        /// <param name="destinazioneDiversa">destinazioneDiversa.</param>
+        /// <param name="ivaEsclusa">ivaEsclusa.</param>
+        /// <param name="ritenutaIncludeCassaPrevidenziale">ritenutaIncludeCassaPrevidenziale.</param>
+        /// <param name="classeDocumento">classeDocumento.</param>
+        /// <param name="contatto">contatto.</param>
+        /// <param name="numeroParteTesto">numeroParteTesto.</param>
+        /// <param name="numeroParteNumerica">numeroParteNumerica.</param>
+        /// <param name="data">data.</param>
+        /// <param name="stato">stato.</param>
+        /// <param name="dataScadenzaPreventivo">dataScadenzaPreventivo.</param>
+        /// <param name="dataInizioScadenze">dataInizioScadenze.</param>
+        /// <param name="scontoPercentuale">scontoPercentuale.</param>
+        /// <param name="scontoIncondizionatoImporto">scontoIncondizionatoImporto.</param>
+        /// <param name="abbuonoImporto">abbuonoImporto.</param>
+        /// <param name="ritenutaPercentuale">ritenutaPercentuale.</param>
+        /// <param name="enasarcoPercentuale">enasarcoPercentuale.</param>
+        /// <param name="enasarcoImporto">enasarcoImporto.</param>
+        /// <param name="quotaRitenutaSuImponibile">quotaRitenutaSuImponibile.</param>
+        /// <param name="cambio">cambio.</param>
+        /// <param name="cassaPrevidenzialeNome">cassaPrevidenzialeNome.</param>
+        /// <param name="cassaPrevidenzialePercentuale">cassaPrevidenzialePercentuale.</param>
+        /// <param name="note">note.</param>
+        /// <param name="scontoPagamentoPercentuale">scontoPagamentoPercentuale.</param>
+        /// <param name="iva1Imponibile">iva1Imponibile.</param>
+        /// <param name="iva2Imponibile">iva2Imponibile.</param>
+        /// <param name="iva3Imponibile">iva3Imponibile.</param>
+        /// <param name="iva4Imponibile">iva4Imponibile.</param>
+        /// <param name="iva1ImponibileLordo">iva1ImponibileLordo.</param>
+        /// <param name="iva2ImponibileLordo">iva2ImponibileLordo.</param>
+        /// <param name="iva3ImponibileLordo">iva3ImponibileLordo.</param>
+        /// <param name="iva4ImponibileLordo">iva4ImponibileLordo.</param>
+        /// <param name="iva1Imposta">iva1Imposta.</param>
+        /// <param name="iva2Imposta">iva2Imposta.</param>
+        /// <param name="iva3Imposta">iva3Imposta.</param>
+        /// <param name="iva4Imposta">iva4Imposta.</param>
+        /// <param name="totaleRitenuta">totaleRitenuta.</param>
+        /// <param name="totaleCassaPrevidenziale">totaleCassaPrevidenziale.</param>
+        /// <param name="totaleSpese">totaleSpese.</param>
+        /// <param name="totaleSpeseEsenti">totaleSpeseEsenti.</param>
+        /// <param name="totaleSpeseNonEsenti">totaleSpeseNonEsenti.</param>
+        /// <param name="totaleMerce">totaleMerce.</param>
+        /// <param name="totaleMerceScontata">totaleMerceScontata.</param>
+        /// <param name="totaleImponibile">totaleImponibile.</param>
+        /// <param name="totaleImposta">totaleImposta.</param>
+        /// <param name="totaleEsente">totaleEsente.</param>
+        /// <param name="totaleDocumento">totaleDocumento.</param>
+        /// <param name="nettoAPagare">nettoAPagare.</param>
+        /// <param name="totaleSplitPayment">totaleSplitPayment.</param>
+        /// <param name="bollo">bollo.</param>
+        /// <param name="xmlFileName">xmlFileName.</param>
+        /// <param name="riferimentoAmministrazione">riferimentoAmministrazione.</param>
         /// <param name="banca">banca.</param>
         /// <param name="datiTrasporto">datiTrasporto.</param>
         /// <param name="datiSdi">datiSdi.</param>
         /// <param name="datiPA">datiPA.</param>
-        /// <param name="righe">Righe del documento..</param>
-        /// <param name="speseDocumento">Elenco delle spese..</param>
-        /// <param name="scadenze">Elenco delle scadenze..</param>
-        /// <param name="numero">Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da &#x60;NumeroParteNumerica&#x60; e &#x60;NumeroParteTesto&#x60;. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend..</param>
+        /// <param name="righe">righe.</param>
+        /// <param name="speseDocumento">speseDocumento.</param>
+        /// <param name="scadenze">scadenze.</param>
+        /// <param name="numero">numero.</param>
         /// <param name="mediaFile">mediaFile.</param>
-        /// <param name="allegato">Obsoleto. Non utilizzare..</param>
-        /// <param name="bonusFiscaleCausale">Causale del bonus fiscale..</param>
-        /// <param name="bonusFiscaleImporto">Importo del bonus fiscale..</param>
-        /// <param name="bonusFiscalePercentuale">Percentuale del bonus fiscale..</param>
-        /// <param name="progressivoInvio">Numeri di invio (progressivi), così come restituiti dallo Sdi..</param>
+        /// <param name="allegato">allegato.</param>
+        /// <param name="bonusFiscaleCausale">bonusFiscaleCausale.</param>
+        /// <param name="bonusFiscaleImporto">bonusFiscaleImporto.</param>
+        /// <param name="bonusFiscalePercentuale">bonusFiscalePercentuale.</param>
+        /// <param name="progressivoInvio">progressivoInvio.</param>
         public Documento(int id = default(int), int concurrencyToken = default(int), int anagraficaId = default(int), Anagrafica anagrafica = default(Anagrafica), int? causaleDocumentoId = default(int?), CausaleDocumento causaleDocumento = default(CausaleDocumento), int? agenteId = default(int?), Anagrafica agente = default(Anagrafica), int? pagamentoId = default(int?), Pagamento pagamento = default(Pagamento), int? vettoreId = default(int?), Anagrafica vettore = default(Anagrafica), int? cassaPrevidenzialeCausaleIvaId = default(int?), int? modelloId = default(int?), CausaleIva cassaPrevidenzialeCausaleIva = default(CausaleIva), int? destinazioneId = default(int?), Indirizzo destinazione = default(Indirizzo), int? valutaId = default(int?), Valuta valuta = default(Valuta), int? causaleMagazzinoId = default(int?), CausaleMagazzino causaleMagazzino = default(CausaleMagazzino), int? iva1CausaleIvaId = default(int?), CausaleIva iva1CausaleIva = default(CausaleIva), int? iva2CausaleIvaId = default(int?), CausaleIva iva2CausaleIva = default(CausaleIva), int? iva3CausaleIvaId = default(int?), CausaleIva iva3CausaleIva = default(CausaleIva), int? iva4CausaleIvaId = default(int?), CausaleIva iva4CausaleIva = default(CausaleIva), TipoDocumentoEnum? tipoDocumento = default(TipoDocumentoEnum?), DocumentoFiscaleEnum? documentoFiscale = default(DocumentoFiscaleEnum?), bool destinazioneDiversa = default(bool), bool ivaEsclusa = default(bool), bool ritenutaIncludeCassaPrevidenziale = default(bool), ClasseDocumentoEnum? classeDocumento = default(ClasseDocumentoEnum?), int? contatto = default(int?), string numeroParteTesto = default(string), int numeroParteNumerica = default(int), DateTime data = default(DateTime), StatoEnum? stato = default(StatoEnum?), DateTime? dataScadenzaPreventivo = default(DateTime?), DateTime? dataInizioScadenze = default(DateTime?), double scontoPercentuale = default(double), double scontoIncondizionatoImporto = default(double), double abbuonoImporto = default(double), double ritenutaPercentuale = default(double), double enasarcoPercentuale = default(double), double enasarcoImporto = default(double), double quotaRitenutaSuImponibile = default(double), double cambio = default(double), string cassaPrevidenzialeNome = default(string), double cassaPrevidenzialePercentuale = default(double), string note = default(string), double scontoPagamentoPercentuale = default(double), double iva1Imponibile = default(double), double iva2Imponibile = default(double), double iva3Imponibile = default(double), double iva4Imponibile = default(double), double iva1ImponibileLordo = default(double), double iva2ImponibileLordo = default(double), double iva3ImponibileLordo = default(double), double iva4ImponibileLordo = default(double), double iva1Imposta = default(double), double iva2Imposta = default(double), double iva3Imposta = default(double), double iva4Imposta = default(double), double totaleRitenuta = default(double), double totaleCassaPrevidenziale = default(double), double totaleSpese = default(double), double totaleSpeseEsenti = default(double), double totaleSpeseNonEsenti = default(double), double totaleMerce = default(double), double totaleMerceScontata = default(double), double totaleImponibile = default(double), double totaleImposta = default(double), double totaleEsente = default(double), double totaleDocumento = default(double), double nettoAPagare = default(double), double totaleSplitPayment = default(double), double bollo = default(double), string xmlFileName = default(string), string riferimentoAmministrazione = default(string), BancaDocumento banca = default(BancaDocumento), DatiTrasporto datiTrasporto = default(DatiTrasporto), DatiSdi datiSdi = default(DatiSdi), DatiPA datiPA = default(DatiPA), List<BeneServizio> righe = default(List<BeneServizio>), List<SpesaDocumento> speseDocumento = default(List<SpesaDocumento>), List<Scadenza> scadenze = default(List<Scadenza>), string numero = default(string), DocumentoMediaFile mediaFile = default(DocumentoMediaFile), string allegato = default(string), string bonusFiscaleCausale = default(string), double bonusFiscaleImporto = default(double), double bonusFiscalePercentuale = default(double), List<ProgressivoInvio> progressivoInvio = default(List<ProgressivoInvio>))
         {
             this.Id = id;
@@ -676,29 +668,20 @@ namespace Amica.Sdk.Model
         }
 
         /// <summary>
-        /// Identificativo univoco.
+        /// Gets or Sets Id
         /// </summary>
-        /// <value>Identificativo univoco.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "id", EmitDefaultValue = false)]
         public int Id { get; set; }
 
         /// <summary>
-        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// Gets or Sets ConcurrencyToken
         /// </summary>
-        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
-        /*
-        <example>12345</example>
-        */
         [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
         public int ConcurrencyToken { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Anagrafica&#x60;.
+        /// Gets or Sets AnagraficaId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Anagrafica&#x60;.</value>
         [DataMember(Name = "anagraficaId", EmitDefaultValue = false)]
         public int AnagraficaId { get; set; }
 
@@ -709,9 +692,8 @@ namespace Amica.Sdk.Model
         public Anagrafica Anagrafica { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;CausaleDocumento&#x60;.
+        /// Gets or Sets CausaleDocumentoId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;CausaleDocumento&#x60;.</value>
         [DataMember(Name = "causaleDocumentoId", EmitDefaultValue = true)]
         public int? CausaleDocumentoId { get; set; }
 
@@ -722,9 +704,8 @@ namespace Amica.Sdk.Model
         public CausaleDocumento CausaleDocumento { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Anagrafica&#x60; dell&#39;agente.
+        /// Gets or Sets AgenteId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Anagrafica&#x60; dell&#39;agente.</value>
         [DataMember(Name = "agenteId", EmitDefaultValue = true)]
         public int? AgenteId { get; set; }
 
@@ -735,9 +716,8 @@ namespace Amica.Sdk.Model
         public Anagrafica Agente { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Pagamento&#x60;.
+        /// Gets or Sets PagamentoId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Pagamento&#x60;.</value>
         [DataMember(Name = "pagamentoId", EmitDefaultValue = true)]
         public int? PagamentoId { get; set; }
 
@@ -748,9 +728,8 @@ namespace Amica.Sdk.Model
         public Pagamento Pagamento { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Anagrafica&#x60; del vettore.
+        /// Gets or Sets VettoreId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Anagrafica&#x60; del vettore.</value>
         [DataMember(Name = "vettoreId", EmitDefaultValue = true)]
         public int? VettoreId { get; set; }
 
@@ -761,16 +740,14 @@ namespace Amica.Sdk.Model
         public Anagrafica Vettore { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della causale IVA della cassa previdenziale.
+        /// Gets or Sets CassaPrevidenzialeCausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della causale IVA della cassa previdenziale.</value>
         [DataMember(Name = "cassaPrevidenzialeCausaleIvaId", EmitDefaultValue = true)]
         public int? CassaPrevidenzialeCausaleIvaId { get; set; }
 
         /// <summary>
-        /// Obsoleto. Non utilizzare.
+        /// Gets or Sets ModelloId
         /// </summary>
-        /// <value>Obsoleto. Non utilizzare.</value>
         [DataMember(Name = "modelloId", EmitDefaultValue = true)]
         public int? ModelloId { get; set; }
 
@@ -781,9 +758,8 @@ namespace Amica.Sdk.Model
         public CausaleIva CassaPrevidenzialeCausaleIva { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Indirizzo&#x60; di destinazione.
+        /// Gets or Sets DestinazioneId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Indirizzo&#x60; di destinazione.</value>
         [DataMember(Name = "destinazioneId", EmitDefaultValue = true)]
         public int? DestinazioneId { get; set; }
 
@@ -794,9 +770,8 @@ namespace Amica.Sdk.Model
         public Indirizzo Destinazione { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Valuta&#x60;.
+        /// Gets or Sets ValutaId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Valuta&#x60;.</value>
         [DataMember(Name = "valutaId", EmitDefaultValue = true)]
         public int? ValutaId { get; set; }
 
@@ -807,9 +782,8 @@ namespace Amica.Sdk.Model
         public Valuta Valuta { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;CausaleMagazzino&#x60;.
+        /// Gets or Sets CausaleMagazzinoId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;CausaleMagazzino&#x60;.</value>
         [DataMember(Name = "causaleMagazzinoId", EmitDefaultValue = true)]
         public int? CausaleMagazzinoId { get; set; }
 
@@ -820,9 +794,8 @@ namespace Amica.Sdk.Model
         public CausaleMagazzino CausaleMagazzino { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della prima causale IVA.
+        /// Gets or Sets Iva1CausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della prima causale IVA.</value>
         [DataMember(Name = "iva1CausaleIvaId", EmitDefaultValue = true)]
         public int? Iva1CausaleIvaId { get; set; }
 
@@ -833,9 +806,8 @@ namespace Amica.Sdk.Model
         public CausaleIva Iva1CausaleIva { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della seconda causale IVA.
+        /// Gets or Sets Iva2CausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della seconda causale IVA.</value>
         [DataMember(Name = "iva2CausaleIvaId", EmitDefaultValue = true)]
         public int? Iva2CausaleIvaId { get; set; }
 
@@ -846,9 +818,8 @@ namespace Amica.Sdk.Model
         public CausaleIva Iva2CausaleIva { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della terza causale IVA.
+        /// Gets or Sets Iva3CausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della terza causale IVA.</value>
         [DataMember(Name = "iva3CausaleIvaId", EmitDefaultValue = true)]
         public int? Iva3CausaleIvaId { get; set; }
 
@@ -859,9 +830,8 @@ namespace Amica.Sdk.Model
         public CausaleIva Iva3CausaleIva { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della quarta causale IVA.
+        /// Gets or Sets Iva4CausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della quarta causale IVA.</value>
         [DataMember(Name = "iva4CausaleIvaId", EmitDefaultValue = true)]
         public int? Iva4CausaleIvaId { get; set; }
 
@@ -872,483 +842,296 @@ namespace Amica.Sdk.Model
         public CausaleIva Iva4CausaleIva { get; set; }
 
         /// <summary>
-        /// Indica se la destinazione della merce è diversa dall&#39;indirizzo principale.
+        /// Gets or Sets DestinazioneDiversa
         /// </summary>
-        /// <value>Indica se la destinazione della merce è diversa dall&#39;indirizzo principale.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "destinazioneDiversa", EmitDefaultValue = true)]
         public bool DestinazioneDiversa { get; set; }
 
         /// <summary>
-        /// Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).
+        /// Gets or Sets IvaEsclusa
         /// </summary>
-        /// <value>Indica se i prezzi inseriti sono da considerarsi al netto dell&#39;IVA. Se &#x60;false&#x60;, l&#39;IVA verrà scorporata in fase di elaborazione (app ufficiali).</value>
-        /*
-        <example>true</example>
-        */
         [DataMember(Name = "ivaEsclusa", EmitDefaultValue = true)]
         public bool IvaEsclusa { get; set; }
 
         /// <summary>
-        /// Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento.
+        /// Gets or Sets RitenutaIncludeCassaPrevidenziale
         /// </summary>
-        /// <value>Indica se la ritenuta deve essere applicata anche all&#39;importo della cassa previdenziale riportato nel documento.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "ritenutaIncludeCassaPrevidenziale", EmitDefaultValue = true)]
         public bool RitenutaIncludeCassaPrevidenziale { get; set; }
 
         /// <summary>
-        /// Persona di contatto preferita, &#x60;AnagraficaNominativo1&#x60; oppure &#x60;AnagraficaNominativo2&#x60;.
+        /// Gets or Sets Contatto
         /// </summary>
-        /// <value>Persona di contatto preferita, &#x60;AnagraficaNominativo1&#x60; oppure &#x60;AnagraficaNominativo2&#x60;.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "contatto", EmitDefaultValue = true)]
         public int? Contatto { get; set; }
 
         /// <summary>
-        /// La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis.
+        /// Gets or Sets NumeroParteTesto
         /// </summary>
-        /// <value>La parte alfanumerica del numero del documento, se presente. Ad esempio, \&quot;bis\&quot; per il documento num. 99/bis.</value>
-        /*
-        <example>bis</example>
-        */
         [DataMember(Name = "numeroParteTesto", EmitDefaultValue = true)]
         public string NumeroParteTesto { get; set; }
 
         /// <summary>
-        /// Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis.
+        /// Gets or Sets NumeroParteNumerica
         /// </summary>
-        /// <value>Il numero del documento, nella sua parte numerica. Ad esempio, 99 per il num. 99/bis.</value>
-        /*
-        <example>42</example>
-        */
         [DataMember(Name = "numeroParteNumerica", EmitDefaultValue = false)]
         public int NumeroParteNumerica { get; set; }
 
         /// <summary>
-        /// Data del documento.
+        /// Gets or Sets Data
         /// </summary>
-        /// <value>Data del documento.</value>
         [DataMember(Name = "data", EmitDefaultValue = false)]
         public DateTime Data { get; set; }
 
         /// <summary>
-        /// La data di scadenza, nel caso in cui il documento sia un preventivo.
+        /// Gets or Sets DataScadenzaPreventivo
         /// </summary>
-        /// <value>La data di scadenza, nel caso in cui il documento sia un preventivo.</value>
         [DataMember(Name = "dataScadenzaPreventivo", EmitDefaultValue = true)]
         public DateTime? DataScadenzaPreventivo { get; set; }
 
         /// <summary>
-        /// Data della prima scadenza di pagamento.
+        /// Gets or Sets DataInizioScadenze
         /// </summary>
-        /// <value>Data della prima scadenza di pagamento.</value>
         [DataMember(Name = "dataInizioScadenze", EmitDefaultValue = true)]
         public DateTime? DataInizioScadenze { get; set; }
 
         /// <summary>
-        /// Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.
+        /// Gets or Sets ScontoPercentuale
         /// </summary>
-        /// <value>Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.</value>
-        /*
-        <example>5.0</example>
-        */
         [DataMember(Name = "scontoPercentuale", EmitDefaultValue = false)]
         public double ScontoPercentuale { get; set; }
 
         /// <summary>
-        /// Sconto, in valuta, da applicare all&#39;intero importo del documento.
+        /// Gets or Sets ScontoIncondizionatoImporto
         /// </summary>
-        /// <value>Sconto, in valuta, da applicare all&#39;intero importo del documento.</value>
-        /*
-        <example>50.0</example>
-        */
         [DataMember(Name = "scontoIncondizionatoImporto", EmitDefaultValue = false)]
         public double ScontoIncondizionatoImporto { get; set; }
 
         /// <summary>
-        /// Importo dell&#39;abbuono.
+        /// Gets or Sets AbbuonoImporto
         /// </summary>
-        /// <value>Importo dell&#39;abbuono.</value>
-        /*
-        <example>2.5</example>
-        */
         [DataMember(Name = "abbuonoImporto", EmitDefaultValue = false)]
         public double AbbuonoImporto { get; set; }
 
         /// <summary>
-        /// Quota della ritenuta da applicare al documento.
+        /// Gets or Sets RitenutaPercentuale
         /// </summary>
-        /// <value>Quota della ritenuta da applicare al documento.</value>
-        /*
-        <example>20.0</example>
-        */
         [DataMember(Name = "ritenutaPercentuale", EmitDefaultValue = false)]
         public double RitenutaPercentuale { get; set; }
 
         /// <summary>
-        /// Contributo Enasarco da applicare al documento.
+        /// Gets or Sets EnasarcoPercentuale
         /// </summary>
-        /// <value>Contributo Enasarco da applicare al documento.</value>
-        /*
-        <example>8.5</example>
-        */
         [DataMember(Name = "enasarcoPercentuale", EmitDefaultValue = false)]
         public double EnasarcoPercentuale { get; set; }
 
         /// <summary>
-        /// Importo Enasarco.
+        /// Gets or Sets EnasarcoImporto
         /// </summary>
-        /// <value>Importo Enasarco.</value>
-        /*
-        <example>85.0</example>
-        */
         [DataMember(Name = "enasarcoImporto", EmitDefaultValue = false)]
         public double EnasarcoImporto { get; set; }
 
         /// <summary>
-        /// Quota dell&#39;imponibile su cui applicare la ritenuta.
+        /// Gets or Sets QuotaRitenutaSuImponibile
         /// </summary>
-        /// <value>Quota dell&#39;imponibile su cui applicare la ritenuta.</value>
-        /*
-        <example>50.0</example>
-        */
         [DataMember(Name = "quotaRitenutaSuImponibile", EmitDefaultValue = false)]
         public double QuotaRitenutaSuImponibile { get; set; }
 
         /// <summary>
-        /// Tasso di cambio rispetto all&#39;Euro, nel caso in cui la &#x60;Valuta&#x60; del documento non sia l&#39;Euro.
+        /// Gets or Sets Cambio
         /// </summary>
-        /// <value>Tasso di cambio rispetto all&#39;Euro, nel caso in cui la &#x60;Valuta&#x60; del documento non sia l&#39;Euro.</value>
-        /*
-        <example>1.0</example>
-        */
         [DataMember(Name = "cambio", EmitDefaultValue = false)]
         public double Cambio { get; set; }
 
         /// <summary>
-        /// Nome della cassa previdenziale applicata al documento.
+        /// Gets or Sets CassaPrevidenzialeNome
         /// </summary>
-        /// <value>Nome della cassa previdenziale applicata al documento.</value>
-        /*
-        <example>Cassa Forense</example>
-        */
         [DataMember(Name = "cassaPrevidenzialeNome", EmitDefaultValue = true)]
         public string CassaPrevidenzialeNome { get; set; }
 
         /// <summary>
-        /// Aliquota (percentuale) della cassa previdenziale da applicare al documento.
+        /// Gets or Sets CassaPrevidenzialePercentuale
         /// </summary>
-        /// <value>Aliquota (percentuale) della cassa previdenziale da applicare al documento.</value>
-        /*
-        <example>4.0</example>
-        */
         [DataMember(Name = "cassaPrevidenzialePercentuale", EmitDefaultValue = false)]
         public double CassaPrevidenzialePercentuale { get; set; }
 
         /// <summary>
-        /// Note.
+        /// Gets or Sets Note
         /// </summary>
-        /// <value>Note.</value>
-        /*
-        <example>Consegna prevista entro fine mese.</example>
-        */
         [DataMember(Name = "note", EmitDefaultValue = true)]
         public string Note { get; set; }
 
         /// <summary>
-        /// Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).
+        /// Gets or Sets ScontoPagamentoPercentuale
         /// </summary>
-        /// <value>Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).</value>
-        /*
-        <example>5.0</example>
-        */
         [DataMember(Name = "scontoPagamentoPercentuale", EmitDefaultValue = false)]
         public double ScontoPagamentoPercentuale { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60;
+        /// Gets or Sets Iva1Imponibile
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60;</value>
-        /*
-        <example>1000.0</example>
-        */
         [DataMember(Name = "iva1Imponibile", EmitDefaultValue = false)]
         public double Iva1Imponibile { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60;
+        /// Gets or Sets Iva2Imponibile
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60;</value>
-        /*
-        <example>500.0</example>
-        */
         [DataMember(Name = "iva2Imponibile", EmitDefaultValue = false)]
         public double Iva2Imponibile { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60;
+        /// Gets or Sets Iva3Imponibile
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60;</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva3Imponibile", EmitDefaultValue = false)]
         public double Iva3Imponibile { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60;
+        /// Gets or Sets Iva4Imponibile
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60;</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva4Imponibile", EmitDefaultValue = false)]
         public double Iva4Imponibile { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60; al lordo di eventuali sconti di fattura.
+        /// Gets or Sets Iva1ImponibileLordo
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60; al lordo di eventuali sconti di fattura.</value>
-        /*
-        <example>1050.0</example>
-        */
         [DataMember(Name = "iva1ImponibileLordo", EmitDefaultValue = false)]
         public double Iva1ImponibileLordo { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60; al lordo di eventuali sconti di fattura.
+        /// Gets or Sets Iva2ImponibileLordo
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60; al lordo di eventuali sconti di fattura.</value>
-        /*
-        <example>525.0</example>
-        */
         [DataMember(Name = "iva2ImponibileLordo", EmitDefaultValue = false)]
         public double Iva2ImponibileLordo { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60; al lordo di eventuali sconti di fattura.
+        /// Gets or Sets Iva3ImponibileLordo
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60; al lordo di eventuali sconti di fattura.</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva3ImponibileLordo", EmitDefaultValue = false)]
         public double Iva3ImponibileLordo { get; set; }
 
         /// <summary>
-        /// Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60; al lordo di eventuali sconti di fattura.
+        /// Gets or Sets Iva4ImponibileLordo
         /// </summary>
-        /// <value>Totale imponibile attribuibile a &#x60;Iva4CausaleIva&#x60; al lordo di eventuali sconti di fattura.</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva4ImponibileLordo", EmitDefaultValue = false)]
         public double Iva4ImponibileLordo { get; set; }
 
         /// <summary>
-        /// Totale imposta per &#x60;Iva1CausaleIva&#x60;
+        /// Gets or Sets Iva1Imposta
         /// </summary>
-        /// <value>Totale imposta per &#x60;Iva1CausaleIva&#x60;</value>
-        /*
-        <example>220.0</example>
-        */
         [DataMember(Name = "iva1Imposta", EmitDefaultValue = false)]
         public double Iva1Imposta { get; set; }
 
         /// <summary>
-        /// Totale imposta per &#x60;Iva2CausaleIva&#x60;
+        /// Gets or Sets Iva2Imposta
         /// </summary>
-        /// <value>Totale imposta per &#x60;Iva2CausaleIva&#x60;</value>
-        /*
-        <example>50.0</example>
-        */
         [DataMember(Name = "iva2Imposta", EmitDefaultValue = false)]
         public double Iva2Imposta { get; set; }
 
         /// <summary>
-        /// Totale imposta per &#x60;Iva3CausaleIva&#x60;
+        /// Gets or Sets Iva3Imposta
         /// </summary>
-        /// <value>Totale imposta per &#x60;Iva3CausaleIva&#x60;</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva3Imposta", EmitDefaultValue = false)]
         public double Iva3Imposta { get; set; }
 
         /// <summary>
-        /// Totale imposta per &#x60;Iva4CausaleIva&#x60;
+        /// Gets or Sets Iva4Imposta
         /// </summary>
-        /// <value>Totale imposta per &#x60;Iva4CausaleIva&#x60;</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "iva4Imposta", EmitDefaultValue = false)]
         public double Iva4Imposta { get; set; }
 
         /// <summary>
-        /// Importo della ritenuta.
+        /// Gets or Sets TotaleRitenuta
         /// </summary>
-        /// <value>Importo della ritenuta.</value>
-        /*
-        <example>200.0</example>
-        */
         [DataMember(Name = "totaleRitenuta", EmitDefaultValue = false)]
         public double TotaleRitenuta { get; set; }
 
         /// <summary>
-        /// Importo della cassa previdenziale.
+        /// Gets or Sets TotaleCassaPrevidenziale
         /// </summary>
-        /// <value>Importo della cassa previdenziale.</value>
-        /*
-        <example>40.0</example>
-        */
         [DataMember(Name = "totaleCassaPrevidenziale", EmitDefaultValue = false)]
         public double TotaleCassaPrevidenziale { get; set; }
 
         /// <summary>
-        /// Totale delle spese esenti e non esenti.
+        /// Gets or Sets TotaleSpese
         /// </summary>
-        /// <value>Totale delle spese esenti e non esenti.</value>
-        /*
-        <example>30.0</example>
-        */
         [DataMember(Name = "totaleSpese", EmitDefaultValue = false)]
         public double TotaleSpese { get; set; }
 
         /// <summary>
-        /// Totale delle spese esenti da IVA.
+        /// Gets or Sets TotaleSpeseEsenti
         /// </summary>
-        /// <value>Totale delle spese esenti da IVA.</value>
-        /*
-        <example>10.0</example>
-        */
         [DataMember(Name = "totaleSpeseEsenti", EmitDefaultValue = false)]
         public double TotaleSpeseEsenti { get; set; }
 
         /// <summary>
-        /// Totale delle spese non esenti da IVA.
+        /// Gets or Sets TotaleSpeseNonEsenti
         /// </summary>
-        /// <value>Totale delle spese non esenti da IVA.</value>
-        /*
-        <example>20.0</example>
-        */
         [DataMember(Name = "totaleSpeseNonEsenti", EmitDefaultValue = false)]
         public double TotaleSpeseNonEsenti { get; set; }
 
         /// <summary>
-        /// Importo della merce.
+        /// Gets or Sets TotaleMerce
         /// </summary>
-        /// <value>Importo della merce.</value>
-        /*
-        <example>1500.0</example>
-        */
         [DataMember(Name = "totaleMerce", EmitDefaultValue = false)]
         public double TotaleMerce { get; set; }
 
         /// <summary>
-        /// Importo della merce scontata.
+        /// Gets or Sets TotaleMerceScontata
         /// </summary>
-        /// <value>Importo della merce scontata.</value>
-        /*
-        <example>1425.0</example>
-        */
         [DataMember(Name = "totaleMerceScontata", EmitDefaultValue = false)]
         public double TotaleMerceScontata { get; set; }
 
         /// <summary>
-        /// Totale imponibile, considerando tutte le causali IVA coinvolte.
+        /// Gets or Sets TotaleImponibile
         /// </summary>
-        /// <value>Totale imponibile, considerando tutte le causali IVA coinvolte.</value>
-        /*
-        <example>1500.0</example>
-        */
         [DataMember(Name = "totaleImponibile", EmitDefaultValue = false)]
         public double TotaleImponibile { get; set; }
 
         /// <summary>
-        /// Imposta IVA.
+        /// Gets or Sets TotaleImposta
         /// </summary>
-        /// <value>Imposta IVA.</value>
-        /*
-        <example>270.0</example>
-        */
         [DataMember(Name = "totaleImposta", EmitDefaultValue = false)]
         public double TotaleImposta { get; set; }
 
         /// <summary>
-        /// Importi esenti da IVA.
+        /// Gets or Sets TotaleEsente
         /// </summary>
-        /// <value>Importi esenti da IVA.</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "totaleEsente", EmitDefaultValue = false)]
         public double TotaleEsente { get; set; }
 
         /// <summary>
-        /// Importo totale del documento.
+        /// Gets or Sets TotaleDocumento
         /// </summary>
-        /// <value>Importo totale del documento.</value>
-        /*
-        <example>1770.0</example>
-        */
         [DataMember(Name = "totaleDocumento", EmitDefaultValue = false)]
         public double TotaleDocumento { get; set; }
 
         /// <summary>
-        /// Netto a pagare.
+        /// Gets or Sets NettoAPagare
         /// </summary>
-        /// <value>Netto a pagare.</value>
-        /*
-        <example>1770.0</example>
-        */
         [DataMember(Name = "nettoAPagare", EmitDefaultValue = false)]
         public double NettoAPagare { get; set; }
 
         /// <summary>
-        /// Importo dello split payment.
+        /// Gets or Sets TotaleSplitPayment
         /// </summary>
-        /// <value>Importo dello split payment.</value>
-        /*
-        <example>0.0</example>
-        */
         [DataMember(Name = "totaleSplitPayment", EmitDefaultValue = false)]
         public double TotaleSplitPayment { get; set; }
 
         /// <summary>
-        /// Importo del bollo.
+        /// Gets or Sets Bollo
         /// </summary>
-        /// <value>Importo del bollo.</value>
-        /*
-        <example>2.0</example>
-        */
         [DataMember(Name = "bollo", EmitDefaultValue = false)]
         public double Bollo { get; set; }
 
         /// <summary>
-        /// Nome del file XML.
+        /// Gets or Sets XmlFileName
         /// </summary>
-        /// <value>Nome del file XML.</value>
-        /*
-        <example>IT01234567890_00042.xml</example>
-        */
         [DataMember(Name = "xmlFileName", EmitDefaultValue = true)]
         public string XmlFileName { get; set; }
 
         /// <summary>
-        /// Numero di riferimento dell&#39;amministrazione.
+        /// Gets or Sets RiferimentoAmministrazione
         /// </summary>
-        /// <value>Numero di riferimento dell&#39;amministrazione.</value>
-        /*
-        <example>RIF-2026-042</example>
-        */
         [DataMember(Name = "riferimentoAmministrazione", EmitDefaultValue = true)]
         public string RiferimentoAmministrazione { get; set; }
 
@@ -1377,33 +1160,26 @@ namespace Amica.Sdk.Model
         public DatiPA DatiPA { get; set; }
 
         /// <summary>
-        /// Righe del documento.
+        /// Gets or Sets Righe
         /// </summary>
-        /// <value>Righe del documento.</value>
         [DataMember(Name = "righe", EmitDefaultValue = true)]
         public List<BeneServizio> Righe { get; set; }
 
         /// <summary>
-        /// Elenco delle spese.
+        /// Gets or Sets SpeseDocumento
         /// </summary>
-        /// <value>Elenco delle spese.</value>
         [DataMember(Name = "speseDocumento", EmitDefaultValue = true)]
         public List<SpesaDocumento> SpeseDocumento { get; set; }
 
         /// <summary>
-        /// Elenco delle scadenze.
+        /// Gets or Sets Scadenze
         /// </summary>
-        /// <value>Elenco delle scadenze.</value>
         [DataMember(Name = "scadenze", EmitDefaultValue = true)]
         public List<Scadenza> Scadenze { get; set; }
 
         /// <summary>
-        /// Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da &#x60;NumeroParteNumerica&#x60; e &#x60;NumeroParteTesto&#x60;. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend.
+        /// Gets or Sets Numero
         /// </summary>
-        /// <value>Numero completo del documento. Ad esempio, &#x60;99/bis&#x60;. Generato a partire da &#x60;NumeroParteNumerica&#x60; e &#x60;NumeroParteTesto&#x60;. Nota bene: proprietà valorizzata solo nel caso di un&#39;istanza salvata sul backend.</value>
-        /*
-        <example>42/bis</example>
-        */
         [DataMember(Name = "numero", EmitDefaultValue = true)]
         public string Numero { get; set; }
 
@@ -1414,46 +1190,32 @@ namespace Amica.Sdk.Model
         public DocumentoMediaFile MediaFile { get; set; }
 
         /// <summary>
-        /// Obsoleto. Non utilizzare.
+        /// Gets or Sets Allegato
         /// </summary>
-        /// <value>Obsoleto. Non utilizzare.</value>
         [DataMember(Name = "allegato", EmitDefaultValue = true)]
         public string Allegato { get; set; }
 
         /// <summary>
-        /// Causale del bonus fiscale.
+        /// Gets or Sets BonusFiscaleCausale
         /// </summary>
-        /// <value>Causale del bonus fiscale.</value>
-        /*
-        <example>Bonus ristrutturazione 50%</example>
-        */
         [DataMember(Name = "bonusFiscaleCausale", EmitDefaultValue = true)]
         public string BonusFiscaleCausale { get; set; }
 
         /// <summary>
-        /// Importo del bonus fiscale.
+        /// Gets or Sets BonusFiscaleImporto
         /// </summary>
-        /// <value>Importo del bonus fiscale.</value>
-        /*
-        <example>750.0</example>
-        */
         [DataMember(Name = "bonusFiscaleImporto", EmitDefaultValue = false)]
         public double BonusFiscaleImporto { get; set; }
 
         /// <summary>
-        /// Percentuale del bonus fiscale.
+        /// Gets or Sets BonusFiscalePercentuale
         /// </summary>
-        /// <value>Percentuale del bonus fiscale.</value>
-        /*
-        <example>50.0</example>
-        */
         [DataMember(Name = "bonusFiscalePercentuale", EmitDefaultValue = false)]
         public double BonusFiscalePercentuale { get; set; }
 
         /// <summary>
-        /// Numeri di invio (progressivi), così come restituiti dallo Sdi.
+        /// Gets or Sets ProgressivoInvio
         /// </summary>
-        /// <value>Numeri di invio (progressivi), così come restituiti dallo Sdi.</value>
         [DataMember(Name = "progressivoInvio", EmitDefaultValue = true)]
         public List<ProgressivoInvio> ProgressivoInvio { get; set; }
 

@@ -1,18 +1,17 @@
 # Amica.Sdk.Model.Banca
-Banca.
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Id** | **int** | Identificativo univoco. | [optional] 
-**ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
-**Nome** | **string** | Nome. | [optional] 
-**Iban** | **string** | Codice IBAN. | [optional] 
-**Abi** | **string** | Codice ABI. | [optional] 
-**Cab** | **string** | Codice CAB. | [optional] 
-**ContoCorrente** | **string** | Numero di conto corrente. | [optional] 
-**Bic** | **string** | Codice BIC. | [optional] 
+**Id** | **int** |  | [optional] 
+**ConcurrencyToken** | **int** |  | [optional] 
+**Nome** | **string** |  | [optional] 
+**Iban** | **string** |  | [optional] 
+**Abi** | **string** |  | [optional] 
+**Cab** | **string** |  | [optional] 
+**ContoCorrente** | **string** |  | [optional] 
+**Bic** | **string** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.0.2
+ * The version of the OpenAPI document: 3.1.0
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -27,15 +27,14 @@ using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
 namespace Amica.Sdk.Model
 {
     /// <summary>
-    /// Articolo di magazzino o prodotto.
+    /// Articolo
     /// </summary>
     [DataContract(Name = "Articolo")]
     public partial class Articolo : IValidatableObject
     {
         /// <summary>
-        /// Modalità di gestione.
+        /// Defines GestioneArticolo
         /// </summary>
-        /// <value>Modalità di gestione.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum GestioneArticoloEnum
         {
@@ -66,18 +65,13 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Modalità di gestione.
+        /// Gets or Sets GestioneArticolo
         /// </summary>
-        /// <value>Modalità di gestione.</value>
-        /*
-        <example>Standard</example>
-        */
         [DataMember(Name = "gestioneArticolo", EmitDefaultValue = false)]
         public GestioneArticoloEnum? GestioneArticolo { get; set; }
         /// <summary>
-        /// Contesto in cui viene utilizzato.
+        /// Defines ContestoArticolo
         /// </summary>
-        /// <value>Contesto in cui viene utilizzato.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum ContestoArticoloEnum
         {
@@ -108,12 +102,8 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Contesto in cui viene utilizzato.
+        /// Gets or Sets ContestoArticolo
         /// </summary>
-        /// <value>Contesto in cui viene utilizzato.</value>
-        /*
-        <example>Sempre</example>
-        */
         [DataMember(Name = "contestoArticolo", EmitDefaultValue = false)]
         public ContestoArticoloEnum? ContestoArticolo { get; set; }
         /// <summary>
@@ -124,44 +114,44 @@ namespace Amica.Sdk.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="Articolo" /> class.
         /// </summary>
-        /// <param name="id">Identificativo univoco..</param>
-        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
-        /// <param name="categoriaMerceologicaId">Identificativo univoco della &#x60;CategoriaMerceologica&#x60; (categoria merceologica)..</param>
+        /// <param name="id">id.</param>
+        /// <param name="concurrencyToken">concurrencyToken.</param>
+        /// <param name="categoriaMerceologicaId">categoriaMerceologicaId.</param>
         /// <param name="categoriaMerceologica">categoriaMerceologica.</param>
-        /// <param name="gruppoMerceologicoId">Identificativo univoco del &#x60;GruppoMerceologico&#x60; (gruppo merceologico)..</param>
+        /// <param name="gruppoMerceologicoId">gruppoMerceologicoId.</param>
         /// <param name="gruppoMerceologico">gruppoMerceologico.</param>
-        /// <param name="causaleIvaId">Identificativo univoco della &#x60;CausaleIva&#x60; (causale IVA). Id univoco della &lt;a href&#x3D;\&quot;#tag/CausaleIva\&quot;&gt;causale IVA&lt;/a&gt; predefinita per l&#39;articolo..</param>
+        /// <param name="causaleIvaId">causaleIvaId.</param>
         /// <param name="causaleIva">causaleIva.</param>
-        /// <param name="tagliaId">Identificativo univoco della &#x60;Taglia&#x60; (taglia)..</param>
+        /// <param name="tagliaId">tagliaId.</param>
         /// <param name="taglia">taglia.</param>
-        /// <param name="marcaId">Identificativo univoco della &#x60;Marca&#x60;..</param>
+        /// <param name="marcaId">marcaId.</param>
         /// <param name="marca">marca.</param>
-        /// <param name="produttoreId">Identificativo univoco del &#x60;Produttore&#x60; (produttore)..</param>
+        /// <param name="produttoreId">produttoreId.</param>
         /// <param name="produttore">produttore.</param>
-        /// <param name="repartoId">Identificativo univoco del &#x60;Reparto&#x60; (reparto)..</param>
+        /// <param name="repartoId">repartoId.</param>
         /// <param name="reparto">reparto.</param>
-        /// <param name="nome">Nome. (required).</param>
-        /// <param name="codice">Identificativo, o codice. (required).</param>
-        /// <param name="nomeBreve">Nome breve..</param>
-        /// <param name="codiceFornitore">Codice dell&#39;articolo o prodotto presso il fornitore..</param>
-        /// <param name="codiceProduttore">Codice dell&#39;articolo o prodotto presso il produttore..</param>
-        /// <param name="gestioneArticolo">Modalità di gestione..</param>
-        /// <param name="contestoArticolo">Contesto in cui viene utilizzato..</param>
-        /// <param name="barCode">Codice a barre..</param>
-        /// <param name="costoUltimo">Ultimo prezzo di costo..</param>
-        /// <param name="costoMedio">Prezzo di costo medio..</param>
-        /// <param name="unitMisuraIntera">Indica se l&#39;unità di misura deve essere arrotondata all&#39;intero più vicino..</param>
-        /// <param name="articoloComposto">Indica se è composto assemblando altri articoli..</param>
-        /// <param name="stato">Stato. &#x60;true&#x60; se attivo, &#x60;false&#x60; altrimenti..</param>
-        /// <param name="dataInserimento">Data di primo inserimento..</param>
-        /// <param name="unitMisuraMovimenti">Unità di misura da utilizzare nei movimenti di magazzino..</param>
-        /// <param name="unitMisuraInventario">Unità di misura da utilizzare nelle elaborazioni di inventario..</param>
-        /// <param name="fattoreConversioneUnitMisura">Fattore di conversione tra unità di movimento e unità di inventario..</param>
-        /// <param name="note">Note..</param>
+        /// <param name="nome">nome (required).</param>
+        /// <param name="codice">codice (required).</param>
+        /// <param name="nomeBreve">nomeBreve.</param>
+        /// <param name="codiceFornitore">codiceFornitore.</param>
+        /// <param name="codiceProduttore">codiceProduttore.</param>
+        /// <param name="gestioneArticolo">gestioneArticolo.</param>
+        /// <param name="contestoArticolo">contestoArticolo.</param>
+        /// <param name="barCode">barCode.</param>
+        /// <param name="costoUltimo">costoUltimo.</param>
+        /// <param name="costoMedio">costoMedio.</param>
+        /// <param name="unitMisuraIntera">unitMisuraIntera.</param>
+        /// <param name="articoloComposto">articoloComposto.</param>
+        /// <param name="stato">stato.</param>
+        /// <param name="dataInserimento">dataInserimento.</param>
+        /// <param name="unitMisuraMovimenti">unitMisuraMovimenti.</param>
+        /// <param name="unitMisuraInventario">unitMisuraInventario.</param>
+        /// <param name="fattoreConversioneUnitMisura">fattoreConversioneUnitMisura.</param>
+        /// <param name="note">note.</param>
         /// <param name="mediaFile">mediaFile.</param>
-        /// <param name="contoRawVendita">Conto da utilizzare nelle registrazioni contabili di vendita..</param>
-        /// <param name="contoRawAcquisto">Conto da utilizzare nelle registrazioni contabili di acquisto..</param>
-        /// <param name="distintaBase">Distinta base..</param>
+        /// <param name="contoRawVendita">contoRawVendita.</param>
+        /// <param name="contoRawAcquisto">contoRawAcquisto.</param>
+        /// <param name="distintaBase">distintaBase.</param>
         public Articolo(int id = default(int), int concurrencyToken = default(int), int? categoriaMerceologicaId = default(int?), CategoriaMerceologica categoriaMerceologica = default(CategoriaMerceologica), int? gruppoMerceologicoId = default(int?), GruppoMerceologico gruppoMerceologico = default(GruppoMerceologico), int? causaleIvaId = default(int?), CausaleIva causaleIva = default(CausaleIva), int? tagliaId = default(int?), Taglia taglia = default(Taglia), int? marcaId = default(int?), Marca marca = default(Marca), int? produttoreId = default(int?), Produttore produttore = default(Produttore), int? repartoId = default(int?), Reparto reparto = default(Reparto), string nome = default(string), string codice = default(string), string nomeBreve = default(string), string codiceFornitore = default(string), string codiceProduttore = default(string), GestioneArticoloEnum? gestioneArticolo = default(GestioneArticoloEnum?), ContestoArticoloEnum? contestoArticolo = default(ContestoArticoloEnum?), string barCode = default(string), double costoUltimo = default(double), double costoMedio = default(double), bool unitMisuraIntera = default(bool), bool articoloComposto = default(bool), bool stato = default(bool), DateTime? dataInserimento = default(DateTime?), string unitMisuraMovimenti = default(string), string unitMisuraInventario = default(string), double fattoreConversioneUnitMisura = default(double), string note = default(string), ArticoloMediaFile mediaFile = default(ArticoloMediaFile), string contoRawVendita = default(string), string contoRawAcquisto = default(string), List<Componente> distintaBase = default(List<Componente>))
         {
             // to ensure "nome" is required (not null)
@@ -215,32 +205,20 @@ namespace Amica.Sdk.Model
         }
 
         /// <summary>
-        /// Identificativo univoco.
+        /// Gets or Sets Id
         /// </summary>
-        /// <value>Identificativo univoco.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "id", EmitDefaultValue = false)]
         public int Id { get; set; }
 
         /// <summary>
-        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// Gets or Sets ConcurrencyToken
         /// </summary>
-        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
-        /*
-        <example>12345</example>
-        */
         [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
         public int ConcurrencyToken { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della &#x60;CategoriaMerceologica&#x60; (categoria merceologica).
+        /// Gets or Sets CategoriaMerceologicaId
         /// </summary>
-        /// <value>Identificativo univoco della &#x60;CategoriaMerceologica&#x60; (categoria merceologica).</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "categoriaMerceologicaId", EmitDefaultValue = true)]
         public int? CategoriaMerceologicaId { get; set; }
 
@@ -251,12 +229,8 @@ namespace Amica.Sdk.Model
         public CategoriaMerceologica CategoriaMerceologica { get; set; }
 
         /// <summary>
-        /// Identificativo univoco del &#x60;GruppoMerceologico&#x60; (gruppo merceologico).
+        /// Gets or Sets GruppoMerceologicoId
         /// </summary>
-        /// <value>Identificativo univoco del &#x60;GruppoMerceologico&#x60; (gruppo merceologico).</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "gruppoMerceologicoId", EmitDefaultValue = true)]
         public int? GruppoMerceologicoId { get; set; }
 
@@ -267,12 +241,8 @@ namespace Amica.Sdk.Model
         public GruppoMerceologico GruppoMerceologico { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della &#x60;CausaleIva&#x60; (causale IVA). Id univoco della &lt;a href&#x3D;\&quot;#tag/CausaleIva\&quot;&gt;causale IVA&lt;/a&gt; predefinita per l&#39;articolo.
+        /// Gets or Sets CausaleIvaId
         /// </summary>
-        /// <value>Identificativo univoco della &#x60;CausaleIva&#x60; (causale IVA). Id univoco della &lt;a href&#x3D;\&quot;#tag/CausaleIva\&quot;&gt;causale IVA&lt;/a&gt; predefinita per l&#39;articolo.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "causaleIvaId", EmitDefaultValue = true)]
         public int? CausaleIvaId { get; set; }
 
@@ -283,12 +253,8 @@ namespace Amica.Sdk.Model
         public CausaleIva CausaleIva { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della &#x60;Taglia&#x60; (taglia).
+        /// Gets or Sets TagliaId
         /// </summary>
-        /// <value>Identificativo univoco della &#x60;Taglia&#x60; (taglia).</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "tagliaId", EmitDefaultValue = true)]
         public int? TagliaId { get; set; }
 
@@ -299,12 +265,8 @@ namespace Amica.Sdk.Model
         public Taglia Taglia { get; set; }
 
         /// <summary>
-        /// Identificativo univoco della &#x60;Marca&#x60;.
+        /// Gets or Sets MarcaId
         /// </summary>
-        /// <value>Identificativo univoco della &#x60;Marca&#x60;.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "marcaId", EmitDefaultValue = true)]
         public int? MarcaId { get; set; }
 
@@ -315,12 +277,8 @@ namespace Amica.Sdk.Model
         public Marca Marca { get; set; }
 
         /// <summary>
-        /// Identificativo univoco del &#x60;Produttore&#x60; (produttore).
+        /// Gets or Sets ProduttoreId
         /// </summary>
-        /// <value>Identificativo univoco del &#x60;Produttore&#x60; (produttore).</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "produttoreId", EmitDefaultValue = true)]
         public int? ProduttoreId { get; set; }
 
@@ -331,12 +289,8 @@ namespace Amica.Sdk.Model
         public Produttore Produttore { get; set; }
 
         /// <summary>
-        /// Identificativo univoco del &#x60;Reparto&#x60; (reparto).
+        /// Gets or Sets RepartoId
         /// </summary>
-        /// <value>Identificativo univoco del &#x60;Reparto&#x60; (reparto).</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "repartoId", EmitDefaultValue = true)]
         public int? RepartoId { get; set; }
 
@@ -347,159 +301,98 @@ namespace Amica.Sdk.Model
         public Reparto Reparto { get; set; }
 
         /// <summary>
-        /// Nome.
+        /// Gets or Sets Nome
         /// </summary>
-        /// <value>Nome.</value>
-        /*
-        <example>Cacciavite a croce</example>
-        */
         [DataMember(Name = "nome", IsRequired = true, EmitDefaultValue = true)]
         public string Nome { get; set; }
 
         /// <summary>
-        /// Identificativo, o codice.
+        /// Gets or Sets Codice
         /// </summary>
-        /// <value>Identificativo, o codice.</value>
-        /*
-        <example>ART001</example>
-        */
         [DataMember(Name = "codice", IsRequired = true, EmitDefaultValue = true)]
         public string Codice { get; set; }
 
         /// <summary>
-        /// Nome breve.
+        /// Gets or Sets NomeBreve
         /// </summary>
-        /// <value>Nome breve.</value>
-        /*
-        <example>Cacciavite</example>
-        */
         [DataMember(Name = "nomeBreve", EmitDefaultValue = true)]
         public string NomeBreve { get; set; }
 
         /// <summary>
-        /// Codice dell&#39;articolo o prodotto presso il fornitore.
+        /// Gets or Sets CodiceFornitore
         /// </summary>
-        /// <value>Codice dell&#39;articolo o prodotto presso il fornitore.</value>
-        /*
-        <example>FORN-789</example>
-        */
         [DataMember(Name = "codiceFornitore", EmitDefaultValue = true)]
         public string CodiceFornitore { get; set; }
 
         /// <summary>
-        /// Codice dell&#39;articolo o prodotto presso il produttore.
+        /// Gets or Sets CodiceProduttore
         /// </summary>
-        /// <value>Codice dell&#39;articolo o prodotto presso il produttore.</value>
-        /*
-        <example>PROD-456</example>
-        */
         [DataMember(Name = "codiceProduttore", EmitDefaultValue = true)]
         public string CodiceProduttore { get; set; }
 
         /// <summary>
-        /// Codice a barre.
+        /// Gets or Sets BarCode
         /// </summary>
-        /// <value>Codice a barre.</value>
-        /*
-        <example>8001234567890</example>
-        */
         [DataMember(Name = "barCode", EmitDefaultValue = true)]
         public string BarCode { get; set; }
 
         /// <summary>
-        /// Ultimo prezzo di costo.
+        /// Gets or Sets CostoUltimo
         /// </summary>
-        /// <value>Ultimo prezzo di costo.</value>
-        /*
-        <example>8.9</example>
-        */
         [DataMember(Name = "costoUltimo", EmitDefaultValue = false)]
         public double CostoUltimo { get; set; }
 
         /// <summary>
-        /// Prezzo di costo medio.
+        /// Gets or Sets CostoMedio
         /// </summary>
-        /// <value>Prezzo di costo medio.</value>
-        /*
-        <example>9.2</example>
-        */
         [DataMember(Name = "costoMedio", EmitDefaultValue = false)]
         public double CostoMedio { get; set; }
 
         /// <summary>
-        /// Indica se l&#39;unità di misura deve essere arrotondata all&#39;intero più vicino.
+        /// Gets or Sets UnitMisuraIntera
         /// </summary>
-        /// <value>Indica se l&#39;unità di misura deve essere arrotondata all&#39;intero più vicino.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "unitàMisuraIntera", EmitDefaultValue = true)]
         public bool UnitMisuraIntera { get; set; }
 
         /// <summary>
-        /// Indica se è composto assemblando altri articoli.
+        /// Gets or Sets ArticoloComposto
         /// </summary>
-        /// <value>Indica se è composto assemblando altri articoli.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "articoloComposto", EmitDefaultValue = true)]
         public bool ArticoloComposto { get; set; }
 
         /// <summary>
-        /// Stato. &#x60;true&#x60; se attivo, &#x60;false&#x60; altrimenti.
+        /// Gets or Sets Stato
         /// </summary>
-        /// <value>Stato. &#x60;true&#x60; se attivo, &#x60;false&#x60; altrimenti.</value>
-        /*
-        <example>true</example>
-        */
         [DataMember(Name = "stato", EmitDefaultValue = true)]
         public bool Stato { get; set; }
 
         /// <summary>
-        /// Data di primo inserimento.
+        /// Gets or Sets DataInserimento
         /// </summary>
-        /// <value>Data di primo inserimento.</value>
         [DataMember(Name = "dataInserimento", EmitDefaultValue = true)]
         public DateTime? DataInserimento { get; set; }
 
         /// <summary>
-        /// Unità di misura da utilizzare nei movimenti di magazzino.
+        /// Gets or Sets UnitMisuraMovimenti
         /// </summary>
-        /// <value>Unità di misura da utilizzare nei movimenti di magazzino.</value>
-        /*
-        <example>PZ</example>
-        */
         [DataMember(Name = "unitàMisuraMovimenti", EmitDefaultValue = true)]
         public string UnitMisuraMovimenti { get; set; }
 
         /// <summary>
-        /// Unità di misura da utilizzare nelle elaborazioni di inventario.
+        /// Gets or Sets UnitMisuraInventario
         /// </summary>
-        /// <value>Unità di misura da utilizzare nelle elaborazioni di inventario.</value>
-        /*
-        <example>PZ</example>
-        */
         [DataMember(Name = "unitàMisuraInventario", EmitDefaultValue = true)]
         public string UnitMisuraInventario { get; set; }
 
         /// <summary>
-        /// Fattore di conversione tra unità di movimento e unità di inventario.
+        /// Gets or Sets FattoreConversioneUnitMisura
         /// </summary>
-        /// <value>Fattore di conversione tra unità di movimento e unità di inventario.</value>
-        /*
-        <example>1.0</example>
-        */
         [DataMember(Name = "fattoreConversioneUnitàMisura", EmitDefaultValue = false)]
         public double FattoreConversioneUnitMisura { get; set; }
 
         /// <summary>
-        /// Note.
+        /// Gets or Sets Note
         /// </summary>
-        /// <value>Note.</value>
-        /*
-        <example>Articolo soggetto a riordino automatico.</example>
-        */
         [DataMember(Name = "note", EmitDefaultValue = true)]
         public string Note { get; set; }
 
@@ -510,29 +403,20 @@ namespace Amica.Sdk.Model
         public ArticoloMediaFile MediaFile { get; set; }
 
         /// <summary>
-        /// Conto da utilizzare nelle registrazioni contabili di vendita.
+        /// Gets or Sets ContoRawVendita
         /// </summary>
-        /// <value>Conto da utilizzare nelle registrazioni contabili di vendita.</value>
-        /*
-        <example>40.05.001</example>
-        */
         [DataMember(Name = "contoRawVendita", EmitDefaultValue = true)]
         public string ContoRawVendita { get; set; }
 
         /// <summary>
-        /// Conto da utilizzare nelle registrazioni contabili di acquisto.
+        /// Gets or Sets ContoRawAcquisto
         /// </summary>
-        /// <value>Conto da utilizzare nelle registrazioni contabili di acquisto.</value>
-        /*
-        <example>60.05.001</example>
-        */
         [DataMember(Name = "contoRawAcquisto", EmitDefaultValue = true)]
         public string ContoRawAcquisto { get; set; }
 
         /// <summary>
-        /// Distinta base.
+        /// Gets or Sets DistintaBase
         /// </summary>
-        /// <value>Distinta base.</value>
         [DataMember(Name = "distintaBase", EmitDefaultValue = true)]
         public List<Componente> DistintaBase { get; set; }
 

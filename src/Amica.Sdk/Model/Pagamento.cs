@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.0.2
+ * The version of the OpenAPI document: 3.1.0
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -27,15 +27,14 @@ using OpenAPIDateConverter = Amica.Sdk.Client.OpenAPIDateConverter;
 namespace Amica.Sdk.Model
 {
     /// <summary>
-    /// Pagamento.
+    /// Pagamento
     /// </summary>
     [DataContract(Name = "Pagamento")]
     public partial class Pagamento : IValidatableObject
     {
         /// <summary>
-        /// Se e come l&#39;IVA e le spese devono essere considerate nel calcolo della prima rata.
+        /// Defines CalcoloPrimaRata
         /// </summary>
-        /// <value>Se e come l&#39;IVA e le spese devono essere considerate nel calcolo della prima rata.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum CalcoloPrimaRataEnum
         {
@@ -66,15 +65,13 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Se e come l&#39;IVA e le spese devono essere considerate nel calcolo della prima rata.
+        /// Gets or Sets CalcoloPrimaRata
         /// </summary>
-        /// <value>Se e come l&#39;IVA e le spese devono essere considerate nel calcolo della prima rata.</value>
         [DataMember(Name = "calcoloPrimaRata", EmitDefaultValue = false)]
         public CalcoloPrimaRataEnum? CalcoloPrimaRata { get; set; }
         /// <summary>
-        /// Da quando decorre il pagamento della prima rata.
+        /// Defines DecorrenzaPrimaRata
         /// </summary>
-        /// <value>Da quando decorre il pagamento della prima rata.</value>
         [JsonConverter(typeof(StringEnumConverter))]
         public enum DecorrenzaPrimaRataEnum
         {
@@ -99,9 +96,8 @@ namespace Amica.Sdk.Model
 
 
         /// <summary>
-        /// Da quando decorre il pagamento della prima rata.
+        /// Gets or Sets DecorrenzaPrimaRata
         /// </summary>
-        /// <value>Da quando decorre il pagamento della prima rata.</value>
         [DataMember(Name = "decorrenzaPrimaRata", EmitDefaultValue = false)]
         public DecorrenzaPrimaRataEnum? DecorrenzaPrimaRata { get; set; }
         /// <summary>
@@ -112,25 +108,25 @@ namespace Amica.Sdk.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="Pagamento" /> class.
         /// </summary>
-        /// <param name="id">Identificativo univoco..</param>
-        /// <param name="concurrencyToken">Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato..</param>
-        /// <param name="modalitaPagamentoId">Identificativo univoco di &#x60;ModalitaPagamento&#x60;..</param>
+        /// <param name="id">id.</param>
+        /// <param name="concurrencyToken">concurrencyToken.</param>
+        /// <param name="modalitaPagamentoId">modalitaPagamentoId.</param>
         /// <param name="modalitaPagamento">modalitaPagamento.</param>
-        /// <param name="spesaId">Identificativo univoco di &#x60;Spesa&#x60;..</param>
+        /// <param name="spesaId">spesaId.</param>
         /// <param name="spesa">spesa.</param>
-        /// <param name="risorsaFinanziariaId">Identificativo univoco di &#x60;RisorsaFinanziaria&#x60;..</param>
+        /// <param name="risorsaFinanziariaId">risorsaFinanziariaId.</param>
         /// <param name="risorsaFinanziaria">risorsaFinanziaria.</param>
-        /// <param name="nome">Nome, o descrizione. (required).</param>
-        /// <param name="calcoloPrimaRata">Se e come l&#39;IVA e le spese devono essere considerate nel calcolo della prima rata..</param>
-        /// <param name="decorrenzaPrimaRata">Da quando decorre il pagamento della prima rata..</param>
-        /// <param name="giorniAggiuntivi">Giorni extra da aggiungere ad ogni scadenza..</param>
-        /// <param name="sconto">Sconto riconosciuto per l&#39;utilizzo del pagamento (percentuale)..</param>
-        /// <param name="inizioScadenze">Periodicità della prima rata. Per le successive, impostare &#x60;Periodicità&#x60;..</param>
-        /// <param name="periodicit">Periodicità delle rate successive alla prima. Per la prima rata, impostare &#x60;InizioScadenze&#x60;. Default impostato a 30..</param>
-        /// <param name="fineMese">Indica se le scadenze devono essere riportate a fine mese..</param>
-        /// <param name="giorniEsatti">Indica se il pagamento è utilizzato nel caso di &#39;Art. 62 prodotti alimentari (giorni esatti)&#39;..</param>
-        /// <param name="rate">Numero di rate..</param>
-        /// <param name="note">Note..</param>
+        /// <param name="nome">nome (required).</param>
+        /// <param name="calcoloPrimaRata">calcoloPrimaRata.</param>
+        /// <param name="decorrenzaPrimaRata">decorrenzaPrimaRata.</param>
+        /// <param name="giorniAggiuntivi">giorniAggiuntivi.</param>
+        /// <param name="sconto">sconto.</param>
+        /// <param name="inizioScadenze">inizioScadenze.</param>
+        /// <param name="periodicit">periodicit.</param>
+        /// <param name="fineMese">fineMese.</param>
+        /// <param name="giorniEsatti">giorniEsatti.</param>
+        /// <param name="rate">rate.</param>
+        /// <param name="note">note.</param>
         public Pagamento(int id = default(int), int concurrencyToken = default(int), int? modalitaPagamentoId = default(int?), ModalitaPagamento modalitaPagamento = default(ModalitaPagamento), int? spesaId = default(int?), Spesa spesa = default(Spesa), int? risorsaFinanziariaId = default(int?), RisorsaFinanziaria risorsaFinanziaria = default(RisorsaFinanziaria), string nome = default(string), CalcoloPrimaRataEnum? calcoloPrimaRata = default(CalcoloPrimaRataEnum?), DecorrenzaPrimaRataEnum? decorrenzaPrimaRata = default(DecorrenzaPrimaRataEnum?), int giorniAggiuntivi = default(int), double sconto = default(double), int inizioScadenze = default(int), int periodicit = default(int), bool fineMese = default(bool), bool giorniEsatti = default(bool), int rate = default(int), string note = default(string))
         {
             // to ensure "nome" is required (not null)
@@ -160,32 +156,20 @@ namespace Amica.Sdk.Model
         }
 
         /// <summary>
-        /// Identificativo univoco.
+        /// Gets or Sets Id
         /// </summary>
-        /// <value>Identificativo univoco.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "id", EmitDefaultValue = false)]
         public int Id { get; set; }
 
         /// <summary>
-        /// Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.
+        /// Gets or Sets ConcurrencyToken
         /// </summary>
-        /// <value>Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato.</value>
-        /*
-        <example>12345</example>
-        */
         [DataMember(Name = "concurrencyToken", EmitDefaultValue = false)]
         public int ConcurrencyToken { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;ModalitaPagamento&#x60;.
+        /// Gets or Sets ModalitaPagamentoId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;ModalitaPagamento&#x60;.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "modalitaPagamentoId", EmitDefaultValue = true)]
         public int? ModalitaPagamentoId { get; set; }
 
@@ -196,12 +180,8 @@ namespace Amica.Sdk.Model
         public ModalitaPagamento ModalitaPagamento { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;Spesa&#x60;.
+        /// Gets or Sets SpesaId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;Spesa&#x60;.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "spesaId", EmitDefaultValue = true)]
         public int? SpesaId { get; set; }
 
@@ -212,12 +192,8 @@ namespace Amica.Sdk.Model
         public Spesa Spesa { get; set; }
 
         /// <summary>
-        /// Identificativo univoco di &#x60;RisorsaFinanziaria&#x60;.
+        /// Gets or Sets RisorsaFinanziariaId
         /// </summary>
-        /// <value>Identificativo univoco di &#x60;RisorsaFinanziaria&#x60;.</value>
-        /*
-        <example>1</example>
-        */
         [DataMember(Name = "risorsaFinanziariaId", EmitDefaultValue = true)]
         public int? RisorsaFinanziariaId { get; set; }
 
@@ -228,92 +204,56 @@ namespace Amica.Sdk.Model
         public RisorsaFinanziaria RisorsaFinanziaria { get; set; }
 
         /// <summary>
-        /// Nome, o descrizione.
+        /// Gets or Sets Nome
         /// </summary>
-        /// <value>Nome, o descrizione.</value>
-        /*
-        <example>Bonifico 30/60/90 giorni</example>
-        */
         [DataMember(Name = "nome", IsRequired = true, EmitDefaultValue = true)]
         public string Nome { get; set; }
 
         /// <summary>
-        /// Giorni extra da aggiungere ad ogni scadenza.
+        /// Gets or Sets GiorniAggiuntivi
         /// </summary>
-        /// <value>Giorni extra da aggiungere ad ogni scadenza.</value>
-        /*
-        <example>5</example>
-        */
         [DataMember(Name = "giorniAggiuntivi", EmitDefaultValue = false)]
         public int GiorniAggiuntivi { get; set; }
 
         /// <summary>
-        /// Sconto riconosciuto per l&#39;utilizzo del pagamento (percentuale).
+        /// Gets or Sets Sconto
         /// </summary>
-        /// <value>Sconto riconosciuto per l&#39;utilizzo del pagamento (percentuale).</value>
-        /*
-        <example>2.0</example>
-        */
         [DataMember(Name = "sconto", EmitDefaultValue = false)]
         public double Sconto { get; set; }
 
         /// <summary>
-        /// Periodicità della prima rata. Per le successive, impostare &#x60;Periodicità&#x60;.
+        /// Gets or Sets InizioScadenze
         /// </summary>
-        /// <value>Periodicità della prima rata. Per le successive, impostare &#x60;Periodicità&#x60;.</value>
-        /*
-        <example>30</example>
-        */
         [DataMember(Name = "inizioScadenze", EmitDefaultValue = false)]
         public int InizioScadenze { get; set; }
 
         /// <summary>
-        /// Periodicità delle rate successive alla prima. Per la prima rata, impostare &#x60;InizioScadenze&#x60;. Default impostato a 30.
+        /// Gets or Sets Periodicit
         /// </summary>
-        /// <value>Periodicità delle rate successive alla prima. Per la prima rata, impostare &#x60;InizioScadenze&#x60;. Default impostato a 30.</value>
-        /*
-        <example>30</example>
-        */
         [DataMember(Name = "periodicità", EmitDefaultValue = false)]
         public int Periodicit { get; set; }
 
         /// <summary>
-        /// Indica se le scadenze devono essere riportate a fine mese.
+        /// Gets or Sets FineMese
         /// </summary>
-        /// <value>Indica se le scadenze devono essere riportate a fine mese.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "fineMese", EmitDefaultValue = true)]
         public bool FineMese { get; set; }
 
         /// <summary>
-        /// Indica se il pagamento è utilizzato nel caso di &#39;Art. 62 prodotti alimentari (giorni esatti)&#39;.
+        /// Gets or Sets GiorniEsatti
         /// </summary>
-        /// <value>Indica se il pagamento è utilizzato nel caso di &#39;Art. 62 prodotti alimentari (giorni esatti)&#39;.</value>
-        /*
-        <example>false</example>
-        */
         [DataMember(Name = "giorniEsatti", EmitDefaultValue = true)]
         public bool GiorniEsatti { get; set; }
 
         /// <summary>
-        /// Numero di rate.
+        /// Gets or Sets Rate
         /// </summary>
-        /// <value>Numero di rate.</value>
-        /*
-        <example>3</example>
-        */
         [DataMember(Name = "rate", EmitDefaultValue = false)]
         public int Rate { get; set; }
 
         /// <summary>
-        /// Note.
+        /// Gets or Sets Note
         /// </summary>
-        /// <value>Note.</value>
-        /*
-        <example>Pagamento riservato ai clienti abituali</example>
-        */
         [DataMember(Name = "note", EmitDefaultValue = true)]
         public string Note { get; set; }
 

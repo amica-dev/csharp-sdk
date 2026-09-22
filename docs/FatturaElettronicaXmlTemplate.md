@@ -1,12 +1,11 @@
 # Amica.Sdk.Model.FatturaElettronicaXmlTemplate
-Modello standard di fattura elettronica.
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Id** | **int** | Identificativo univoco. | [optional] 
-**ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
+**Id** | **int** |  | [optional] 
+**ConcurrencyToken** | **int** |  | [optional] 
 **SoggettoEmittente** | **string** |  | [optional] 
 **IdTrasmittenteIdPaese** | **string** |  | [optional] 
 **CedentePrestatoreIdPaese** | **string** |  | [optional] 
