@@ -122,7 +122,6 @@ docs/RegistrazioneContabile.md
 docs/RegistrazioneContabileApi.md
 docs/RegistrazioneContabileRiga.md
 docs/RegistrazioneContabileValidationResult.md
-docs/Reparto.md
 docs/ResoImportData.md
 docs/RicercaArticolo.md
 docs/RisorsaFinanziaria.md
@@ -270,7 +269,6 @@ src/Amica.Sdk.Test/Model/ProgressivoInvioTests.cs
 src/Amica.Sdk.Test/Model/RegistrazioneContabileRigaTests.cs
 src/Amica.Sdk.Test/Model/RegistrazioneContabileTests.cs
 src/Amica.Sdk.Test/Model/RegistrazioneContabileValidationResultTests.cs
-src/Amica.Sdk.Test/Model/RepartoTests.cs
 src/Amica.Sdk.Test/Model/ResoImportDataTests.cs
 src/Amica.Sdk.Test/Model/RicercaArticoloTests.cs
 src/Amica.Sdk.Test/Model/RisorsaFinanziariaTests.cs
@@ -430,7 +428,6 @@ src/Amica.Sdk/Model/ProgressivoInvio.cs
 src/Amica.Sdk/Model/RegistrazioneContabile.cs
 src/Amica.Sdk/Model/RegistrazioneContabileRiga.cs
 src/Amica.Sdk/Model/RegistrazioneContabileValidationResult.cs
-src/Amica.Sdk/Model/Reparto.cs
 src/Amica.Sdk/Model/ResoImportData.cs
 src/Amica.Sdk/Model/RicercaArticolo.cs
 src/Amica.Sdk/Model/RisorsaFinanziaria.cs

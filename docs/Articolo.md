@@ -18,8 +18,6 @@ Name | Type | Description | Notes
 **Marca** | [**Marca**](Marca.md) |  | [optional] 
 **ProduttoreId** | **int?** |  | [optional] 
 **Produttore** | [**Produttore**](Produttore.md) |  | [optional] 
-**RepartoId** | **int?** |  | [optional] 
-**Reparto** | [**Reparto**](Reparto.md) |  | [optional] 
 **Nome** | **string** |  | 
 **Codice** | **string** |  | 
 **NomeBreve** | **string** |  | [optional] 
