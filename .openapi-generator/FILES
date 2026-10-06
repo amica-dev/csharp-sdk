@@ -64,6 +64,7 @@ docs/DocumentoComputeResultRiepilogoIva.md
 docs/DocumentoImportData.md
 docs/DocumentoMediaFile.md
 docs/DocumentoMediaFileApi.md
+docs/DocumentoTotali.md
 docs/FatturaElettronicaExportOptions.md
 docs/FatturaElettronicaExportResult.md
 docs/FatturaElettronicaImportResult.md
@@ -85,6 +86,10 @@ docs/GruppoMerceologicoApi.md
 docs/ImpostazioniSdi.md
 docs/Indirizzo.md
 docs/IndirizzoApi.md
+docs/Inventario.md
+docs/InventarioApi.md
+docs/InventarioComputeResult.md
+docs/InventarioRiga.md
 docs/Listino.md
 docs/ListinoApi.md
 docs/Magazzino.md
@@ -168,6 +173,7 @@ src/Amica.Sdk.Test/Api/GiacenzaApiTests.cs
 src/Amica.Sdk.Test/Api/GiornaleMagazzinoApiTests.cs
 src/Amica.Sdk.Test/Api/GruppoMerceologicoApiTests.cs
 src/Amica.Sdk.Test/Api/IndirizzoApiTests.cs
+src/Amica.Sdk.Test/Api/InventarioApiTests.cs
 src/Amica.Sdk.Test/Api/ListinoApiTests.cs
 src/Amica.Sdk.Test/Api/MagazzinoApiTests.cs
 src/Amica.Sdk.Test/Api/MarcaApiTests.cs
@@ -232,6 +238,7 @@ src/Amica.Sdk.Test/Model/DocumentoComputeResultTests.cs
 src/Amica.Sdk.Test/Model/DocumentoImportDataTests.cs
 src/Amica.Sdk.Test/Model/DocumentoMediaFileTests.cs
 src/Amica.Sdk.Test/Model/DocumentoTests.cs
+src/Amica.Sdk.Test/Model/DocumentoTotaliTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaExportOptionsTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaExportResultTests.cs
 src/Amica.Sdk.Test/Model/FatturaElettronicaImportResultTests.cs
@@ -247,6 +254,9 @@ src/Amica.Sdk.Test/Model/GiacenzaTests.cs
 src/Amica.Sdk.Test/Model/GruppoMerceologicoTests.cs
 src/Amica.Sdk.Test/Model/ImpostazioniSdiTests.cs
 src/Amica.Sdk.Test/Model/IndirizzoTests.cs
+src/Amica.Sdk.Test/Model/InventarioComputeResultTests.cs
+src/Amica.Sdk.Test/Model/InventarioRigaTests.cs
+src/Amica.Sdk.Test/Model/InventarioTests.cs
 src/Amica.Sdk.Test/Model/ListinoTests.cs
 src/Amica.Sdk.Test/Model/MagazzinoTests.cs
 src/Amica.Sdk.Test/Model/MarcaTests.cs
@@ -307,6 +317,7 @@ src/Amica.Sdk/Api/GiacenzaApi.cs
 src/Amica.Sdk/Api/GiornaleMagazzinoApi.cs
 src/Amica.Sdk/Api/GruppoMerceologicoApi.cs
 src/Amica.Sdk/Api/IndirizzoApi.cs
+src/Amica.Sdk/Api/InventarioApi.cs
 src/Amica.Sdk/Api/ListinoApi.cs
 src/Amica.Sdk/Api/MagazzinoApi.cs
 src/Amica.Sdk/Api/MarcaApi.cs
@@ -391,6 +402,7 @@ src/Amica.Sdk/Model/DocumentoComputeResult.cs
 src/Amica.Sdk/Model/DocumentoComputeResultRiepilogoIva.cs
 src/Amica.Sdk/Model/DocumentoImportData.cs
 src/Amica.Sdk/Model/DocumentoMediaFile.cs
+src/Amica.Sdk/Model/DocumentoTotali.cs
 src/Amica.Sdk/Model/FatturaElettronicaExportOptions.cs
 src/Amica.Sdk/Model/FatturaElettronicaExportResult.cs
 src/Amica.Sdk/Model/FatturaElettronicaImportResult.cs
@@ -406,6 +418,9 @@ src/Amica.Sdk/Model/Giacenza.cs
 src/Amica.Sdk/Model/GruppoMerceologico.cs
 src/Amica.Sdk/Model/ImpostazioniSdi.cs
 src/Amica.Sdk/Model/Indirizzo.cs
+src/Amica.Sdk/Model/Inventario.cs
+src/Amica.Sdk/Model/InventarioComputeResult.cs
+src/Amica.Sdk/Model/InventarioRiga.cs
 src/Amica.Sdk/Model/Listino.cs
 src/Amica.Sdk/Model/Magazzino.cs
 src/Amica.Sdk/Model/Marca.cs

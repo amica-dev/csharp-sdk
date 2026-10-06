@@ -7,6 +7,7 @@ Name | Type | Description | Notes
 **Id** | **int** |  | [optional] 
 **ConcurrencyToken** | **int** |  | [optional] 
 **MovimentoMerceId** | **int** |  | [optional] 
+**MovimentoMerce** | [**MovimentoMerce**](MovimentoMerce.md) |  | [optional] 
 **ArticoloId** | **int** |  | [optional] 
 **Articolo** | [**Articolo**](Articolo.md) |  | [optional] 
 **ListinoId** | **int?** |  | [optional] 
