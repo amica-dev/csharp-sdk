@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
-| [**ApiVversionCompanyIdTabelleNaturaIvaGet**](NaturaIvaApi.md#apivversioncompanyidtabellenaturaivaget) | **GET** /api/v{version}/{companyId}/tabelle/NaturaIva | Restituisce il contenuto della tabella come lista di elementi. |
+| [**NaturaIvaList**](NaturaIvaApi.md#naturaivalist) | **GET** /api/v3/{companyId}/tabelle/NaturaIva | Restituisce il contenuto della tabella come lista di elementi. |
 
-<a id="apivversioncompanyidtabellenaturaivaget"></a>
-# **ApiVversionCompanyIdTabelleNaturaIvaGet**
-> List&lt;NaturaIva&gt; ApiVversionCompanyIdTabelleNaturaIvaGet (string companyId, string version)
+<a id="naturaivalist"></a>
+# **NaturaIvaList**
+> List&lt;NaturaIva&gt; NaturaIvaList (string companyId)
 
 Restituisce il contenuto della tabella come lista di elementi.
 
@@ -22,7 +22,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdTabelleNaturaIvaGetExample
+    public class NaturaIvaListExample
     {
         public static void Main()
         {
@@ -37,17 +37,16 @@ namespace Example
 
             var apiInstance = new NaturaIvaApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var version = "version_example";  // string | 
 
             try
             {
                 // Restituisce il contenuto della tabella come lista di elementi.
-                List<NaturaIva> result = apiInstance.ApiVversionCompanyIdTabelleNaturaIvaGet(companyId, version);
+                List<NaturaIva> result = apiInstance.NaturaIvaList(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling NaturaIvaApi.ApiVversionCompanyIdTabelleNaturaIvaGet: " + e.Message);
+                Debug.Print("Exception when calling NaturaIvaApi.NaturaIvaList: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -56,21 +55,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdTabelleNaturaIvaGetWithHttpInfo variant
+#### Using the NaturaIvaListWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce il contenuto della tabella come lista di elementi.
-    ApiResponse<List<NaturaIva>> response = apiInstance.ApiVversionCompanyIdTabelleNaturaIvaGetWithHttpInfo(companyId, version);
+    ApiResponse<List<NaturaIva>> response = apiInstance.NaturaIvaListWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling NaturaIvaApi.ApiVversionCompanyIdTabelleNaturaIvaGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling NaturaIvaApi.NaturaIvaListWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -81,7 +80,6 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **version** | **string** |  |  |
 
 ### Return type
 

@@ -4,12 +4,12 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
-| [**ApiVversionCompanyIdSituazioneCreditodebitomensileGet**](SituazioneApi.md#apivversioncompanyidsituazionecreditodebitomensileget) | **GET** /api/v{version}/{companyId}/Situazione/creditodebitomensile | Restituisce i saldi mensili di credito e debito dell&#39;azienda. |
-| [**ApiVversionCompanyIdSituazioneFatturatomensileGet**](SituazioneApi.md#apivversioncompanyidsituazionefatturatomensileget) | **GET** /api/v{version}/{companyId}/Situazione/fatturatomensile | Restituisce il fatturato mensile dell&#39;azienda. |
+| [**SituazioneGetCreditoDebitoMensile**](SituazioneApi.md#situazionegetcreditodebitomensile) | **GET** /api/v3/{companyId}/Situazione/creditodebitomensile | Restituisce i saldi mensili di credito e debito dell&#39;azienda. |
+| [**SituazioneGetFatturatoMensile**](SituazioneApi.md#situazionegetfatturatomensile) | **GET** /api/v3/{companyId}/Situazione/fatturatomensile | Restituisce il fatturato mensile dell&#39;azienda. |
 
-<a id="apivversioncompanyidsituazionecreditodebitomensileget"></a>
-# **ApiVversionCompanyIdSituazioneCreditodebitomensileGet**
-> List&lt;CreditoDebitoMensile&gt; ApiVversionCompanyIdSituazioneCreditodebitomensileGet (string companyId, string version)
+<a id="situazionegetcreditodebitomensile"></a>
+# **SituazioneGetCreditoDebitoMensile**
+> List&lt;CreditoDebitoMensile&gt; SituazioneGetCreditoDebitoMensile (string companyId)
 
 Restituisce i saldi mensili di credito e debito dell'azienda.
 
@@ -23,7 +23,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdSituazioneCreditodebitomensileGetExample
+    public class SituazioneGetCreditoDebitoMensileExample
     {
         public static void Main()
         {
@@ -38,17 +38,16 @@ namespace Example
 
             var apiInstance = new SituazioneApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var version = "version_example";  // string | 
 
             try
             {
                 // Restituisce i saldi mensili di credito e debito dell'azienda.
-                List<CreditoDebitoMensile> result = apiInstance.ApiVversionCompanyIdSituazioneCreditodebitomensileGet(companyId, version);
+                List<CreditoDebitoMensile> result = apiInstance.SituazioneGetCreditoDebitoMensile(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling SituazioneApi.ApiVversionCompanyIdSituazioneCreditodebitomensileGet: " + e.Message);
+                Debug.Print("Exception when calling SituazioneApi.SituazioneGetCreditoDebitoMensile: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -57,21 +56,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdSituazioneCreditodebitomensileGetWithHttpInfo variant
+#### Using the SituazioneGetCreditoDebitoMensileWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce i saldi mensili di credito e debito dell'azienda.
-    ApiResponse<List<CreditoDebitoMensile>> response = apiInstance.ApiVversionCompanyIdSituazioneCreditodebitomensileGetWithHttpInfo(companyId, version);
+    ApiResponse<List<CreditoDebitoMensile>> response = apiInstance.SituazioneGetCreditoDebitoMensileWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling SituazioneApi.ApiVversionCompanyIdSituazioneCreditodebitomensileGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling SituazioneApi.SituazioneGetCreditoDebitoMensileWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -82,7 +81,6 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **version** | **string** |  |  |
 
 ### Return type
 
@@ -108,9 +106,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyidsituazionefatturatomensileget"></a>
-# **ApiVversionCompanyIdSituazioneFatturatomensileGet**
-> List&lt;FatturatoMensile&gt; ApiVversionCompanyIdSituazioneFatturatomensileGet (string companyId, string version)
+<a id="situazionegetfatturatomensile"></a>
+# **SituazioneGetFatturatoMensile**
+> List&lt;FatturatoMensile&gt; SituazioneGetFatturatoMensile (string companyId)
 
 Restituisce il fatturato mensile dell'azienda.
 
@@ -124,7 +122,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdSituazioneFatturatomensileGetExample
+    public class SituazioneGetFatturatoMensileExample
     {
         public static void Main()
         {
@@ -139,17 +137,16 @@ namespace Example
 
             var apiInstance = new SituazioneApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var version = "version_example";  // string | 
 
             try
             {
                 // Restituisce il fatturato mensile dell'azienda.
-                List<FatturatoMensile> result = apiInstance.ApiVversionCompanyIdSituazioneFatturatomensileGet(companyId, version);
+                List<FatturatoMensile> result = apiInstance.SituazioneGetFatturatoMensile(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling SituazioneApi.ApiVversionCompanyIdSituazioneFatturatomensileGet: " + e.Message);
+                Debug.Print("Exception when calling SituazioneApi.SituazioneGetFatturatoMensile: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -158,21 +155,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdSituazioneFatturatomensileGetWithHttpInfo variant
+#### Using the SituazioneGetFatturatoMensileWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce il fatturato mensile dell'azienda.
-    ApiResponse<List<FatturatoMensile>> response = apiInstance.ApiVversionCompanyIdSituazioneFatturatomensileGetWithHttpInfo(companyId, version);
+    ApiResponse<List<FatturatoMensile>> response = apiInstance.SituazioneGetFatturatoMensileWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling SituazioneApi.ApiVversionCompanyIdSituazioneFatturatomensileGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling SituazioneApi.SituazioneGetFatturatoMensileWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -183,7 +180,6 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **version** | **string** |  |  |
 
 ### Return type
 

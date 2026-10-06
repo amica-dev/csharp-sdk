@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.1.5
+ * The version of the OpenAPI document: 3.1.6
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -33,10 +33,9 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdDocumentoMediaFileBulkDelete(string companyId, string version, int operationIndex = 0);
+        void DocumentoMediaFileBulkDelete(string companyId, int operationIndex = 0);
 
         /// <summary>
         /// Elimina in blocco tutti i file multimediali dei documenti.
@@ -46,19 +45,17 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfo(string companyId, string version, int operationIndex = 0);
+        ApiResponse<Object> DocumentoMediaFileBulkDeleteWithHttpInfo(string companyId, int operationIndex = 0);
         /// <summary>
         /// Scarica tutti i file multimediali dei documenti come archivio ZIP.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        void ApiVversionCompanyIdDocumentoMediaFileBulkGet(string companyId, string version, int operationIndex = 0);
+        void DocumentoMediaFileBulkGet(string companyId, int operationIndex = 0);
 
         /// <summary>
         /// Scarica tutti i file multimediali dei documenti come archivio ZIP.
@@ -68,10 +65,55 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfo(string companyId, string version, int operationIndex = 0);
+        ApiResponse<Object> DocumentoMediaFileBulkGetWithHttpInfo(string companyId, int operationIndex = 0);
+        /// <summary>
+        /// Elimina un elemento.
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>DocumentoMediaFile</returns>
+        DocumentoMediaFile DocumentoMediaFileDelete(string companyId, int id, int operationIndex = 0);
+
+        /// <summary>
+        /// Elimina un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of DocumentoMediaFile</returns>
+        ApiResponse<DocumentoMediaFile> DocumentoMediaFileDeleteWithHttpInfo(string companyId, int id, int operationIndex = 0);
+        /// <summary>
+        /// Restituisce un elemento.
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>DocumentoMediaFile</returns>
+        DocumentoMediaFile DocumentoMediaFileGet(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0);
+
+        /// <summary>
+        /// Restituisce un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of DocumentoMediaFile</returns>
+        ApiResponse<DocumentoMediaFile> DocumentoMediaFileGetWithHttpInfo(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una lista di elementi.
         /// </summary>
@@ -79,17 +121,16 @@ namespace Amica.Sdk.Api
         ///  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;DocumentoMediaFile&gt;</returns>
-        List<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileGet(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0);
+        List<DocumentoMediaFile> DocumentoMediaFileList(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0);
 
         /// <summary>
         /// Restituisce una lista di elementi.
@@ -98,106 +139,24 @@ namespace Amica.Sdk.Api
         ///  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;DocumentoMediaFile&gt;</returns>
-        ApiResponse<List<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfo(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0);
-        /// <summary>
-        /// Elimina un elemento.
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>DocumentoMediaFile</returns>
-        DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdDelete(string version, string companyId, int id, int operationIndex = 0);
-
-        /// <summary>
-        /// Elimina un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfo(string version, string companyId, int id, int operationIndex = 0);
-        /// <summary>
-        /// Restituisce un elemento.
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>DocumentoMediaFile</returns>
-        DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdGet(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0);
-
-        /// <summary>
-        /// Restituisce un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfo(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0);
-        /// <summary>
-        /// Aggiorna un elemento esistente.
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
-        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
-        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
-        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>DocumentoMediaFile</returns>
-        DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
-
-        /// <summary>
-        /// Aggiorna un elemento esistente.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
-        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
-        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
-        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
+        ApiResponse<List<DocumentoMediaFile>> DocumentoMediaFileListWithHttpInfo(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0);
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile).
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoMediaFile</returns>
-        DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileNewGet(string version, string companyId, int operationIndex = 0);
+        DocumentoMediaFile DocumentoMediaFileNewInstance(string companyId, int operationIndex = 0);
 
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile).
@@ -206,23 +165,21 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfo(string version, string companyId, int operationIndex = 0);
+        ApiResponse<DocumentoMediaFile> DocumentoMediaFileNewInstanceWithHttpInfo(string companyId, int operationIndex = 0);
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoMediaFile</returns>
-        DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFilePost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
+        DocumentoMediaFile DocumentoMediaFilePost(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -231,14 +188,41 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
+        ApiResponse<DocumentoMediaFile> DocumentoMediaFilePostWithHttpInfo(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
+        /// <summary>
+        /// Aggiorna un elemento esistente.
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
+        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
+        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>DocumentoMediaFile</returns>
+        DocumentoMediaFile DocumentoMediaFilePut(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
+
+        /// <summary>
+        /// Aggiorna un elemento esistente.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
+        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
+        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of DocumentoMediaFile</returns>
+        ApiResponse<DocumentoMediaFile> DocumentoMediaFilePutWithHttpInfo(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0);
         #endregion Synchronous Operations
     }
 
@@ -256,11 +240,10 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdDocumentoMediaFileBulkDeleteAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task DocumentoMediaFileBulkDeleteAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Elimina in blocco tutti i file multimediali dei documenti.
@@ -270,11 +253,10 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> DocumentoMediaFileBulkDeleteWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Scarica tutti i file multimediali dei documenti come archivio ZIP.
         /// </summary>
@@ -283,11 +265,10 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task ApiVversionCompanyIdDocumentoMediaFileBulkGetAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task DocumentoMediaFileBulkGetAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Scarica tutti i file multimediali dei documenti come archivio ZIP.
@@ -297,11 +278,66 @@ namespace Amica.Sdk.Api
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<Object>> DocumentoMediaFileBulkGetWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        /// <summary>
+        /// Elimina un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of DocumentoMediaFile</returns>
+        System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileDeleteAsync(string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+
+        /// <summary>
+        /// Elimina un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
+        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> DocumentoMediaFileDeleteWithHttpInfoAsync(string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        /// <summary>
+        /// Restituisce un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of DocumentoMediaFile</returns>
+        System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileGetAsync(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+
+        /// <summary>
+        /// Restituisce un elemento.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
+        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> DocumentoMediaFileGetWithHttpInfoAsync(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una lista di elementi.
         /// </summary>
@@ -309,18 +345,17 @@ namespace Amica.Sdk.Api
         ///  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;DocumentoMediaFile&gt;</returns>
-        System.Threading.Tasks.Task<List<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileGetAsync(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<List<DocumentoMediaFile>> DocumentoMediaFileListAsync(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Restituisce una lista di elementi.
@@ -329,113 +364,17 @@ namespace Amica.Sdk.Api
         ///  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;DocumentoMediaFile&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<DocumentoMediaFile>>> ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfoAsync(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-        /// <summary>
-        /// Elimina un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of DocumentoMediaFile</returns>
-        System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdDeleteAsync(string version, string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-
-        /// <summary>
-        /// Elimina un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfoAsync(string version, string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-        /// <summary>
-        /// Restituisce un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of DocumentoMediaFile</returns>
-        System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdGetAsync(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-
-        /// <summary>
-        /// Restituisce un elemento.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfoAsync(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-        /// <summary>
-        /// Aggiorna un elemento esistente.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
-        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
-        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
-        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of DocumentoMediaFile</returns>
-        System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
-
-        /// <summary>
-        /// Aggiorna un elemento esistente.
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
-        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
-        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
-        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<List<DocumentoMediaFile>>> DocumentoMediaFileListWithHttpInfoAsync(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile).
         /// </summary>
@@ -443,12 +382,11 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoMediaFile</returns>
-        System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileNewGetAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileNewInstanceAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile).
@@ -457,12 +395,11 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> DocumentoMediaFileNewInstanceWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         /// <summary>
         /// Salva un nuovo elemento.
         /// </summary>
@@ -470,7 +407,6 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
@@ -478,7 +414,7 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoMediaFile</returns>
-        System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFilePostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFilePostAsync(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
 
         /// <summary>
         /// Salva un nuovo elemento.
@@ -487,7 +423,6 @@ namespace Amica.Sdk.Api
         /// 
         /// </remarks>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
@@ -495,7 +430,40 @@ namespace Amica.Sdk.Api
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> DocumentoMediaFilePostWithHttpInfoAsync(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+        /// <summary>
+        /// Aggiorna un elemento esistente.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
+        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
+        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of DocumentoMediaFile</returns>
+        System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFilePutAsync(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
+
+        /// <summary>
+        /// Aggiorna un elemento esistente.
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
+        /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
+        /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
+        /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
+        System.Threading.Tasks.Task<ApiResponse<DocumentoMediaFile>> DocumentoMediaFilePutWithHttpInfoAsync(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken));
         #endregion Asynchronous Operations
     }
 
@@ -621,12 +589,11 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdDocumentoMediaFileBulkDelete(string companyId, string version, int operationIndex = 0)
+        public void DocumentoMediaFileBulkDelete(string companyId, int operationIndex = 0)
         {
-            ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfo(companyId, version);
+            DocumentoMediaFileBulkDeleteWithHttpInfo(companyId);
         }
 
         /// <summary>
@@ -634,21 +601,14 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfo(string companyId, string version, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> DocumentoMediaFileBulkDeleteWithHttpInfo(string companyId, int operationIndex = 0)
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkDelete");
-            }
-
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkDelete");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileBulkDelete");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -678,9 +638,8 @@ namespace Amica.Sdk.Api
             }
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileBulkDelete";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileBulkDelete";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -723,10 +682,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Delete<Object>("/api/v{version}/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Delete<Object>("/api/v3/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileBulkDelete", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileBulkDelete", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -741,13 +700,12 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdDocumentoMediaFileBulkDeleteAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task DocumentoMediaFileBulkDeleteAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfoAsync(companyId, version, operationIndex, cancellationToken).ConfigureAwait(false);
+            await DocumentoMediaFileBulkDeleteWithHttpInfoAsync(companyId, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -755,22 +713,15 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdDocumentoMediaFileBulkDeleteWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> DocumentoMediaFileBulkDeleteWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkDelete");
-            }
-
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkDelete");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileBulkDelete");
             }
 
 
@@ -800,9 +751,8 @@ namespace Amica.Sdk.Api
             }
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileBulkDelete";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileBulkDelete";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -845,11 +795,11 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/api/v{version}/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/api/v3/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileBulkDelete", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileBulkDelete", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -864,12 +814,11 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns></returns>
-        public void ApiVversionCompanyIdDocumentoMediaFileBulkGet(string companyId, string version, int operationIndex = 0)
+        public void DocumentoMediaFileBulkGet(string companyId, int operationIndex = 0)
         {
-            ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfo(companyId, version);
+            DocumentoMediaFileBulkGetWithHttpInfo(companyId);
         }
 
         /// <summary>
@@ -877,21 +826,14 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public Amica.Sdk.Client.ApiResponse<Object> ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfo(string companyId, string version, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<Object> DocumentoMediaFileBulkGetWithHttpInfo(string companyId, int operationIndex = 0)
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkGet");
-            }
-
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkGet");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileBulkGet");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -919,9 +861,8 @@ namespace Amica.Sdk.Api
             }
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileBulkGet";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileBulkGet";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -964,10 +905,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<Object>("/api/v{version}/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<Object>("/api/v3/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileBulkGet", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileBulkGet", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -982,13 +923,12 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task ApiVversionCompanyIdDocumentoMediaFileBulkGetAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task DocumentoMediaFileBulkGetAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            await ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfoAsync(companyId, version, operationIndex, cancellationToken).ConfigureAwait(false);
+            await DocumentoMediaFileBulkGetWithHttpInfoAsync(companyId, operationIndex, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -996,22 +936,15 @@ namespace Amica.Sdk.Api
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="version"></param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> ApiVversionCompanyIdDocumentoMediaFileBulkGetWithHttpInfoAsync(string companyId, string version, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<Object>> DocumentoMediaFileBulkGetWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkGet");
-            }
-
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileBulkGet");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileBulkGet");
             }
 
 
@@ -1039,9 +972,8 @@ namespace Amica.Sdk.Api
             }
 
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileBulkGet";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileBulkGet";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -1084,11 +1016,481 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.GetAsync<Object>("/api/v{version}/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<Object>("/api/v3/{companyId}/DocumentoMediaFile/bulk", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileBulkGet", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileBulkGet", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Elimina un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>DocumentoMediaFile</returns>
+        public DocumentoMediaFile DocumentoMediaFileDelete(string companyId, int id, int operationIndex = 0)
+        {
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = DocumentoMediaFileDeleteWithHttpInfo(companyId, id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Elimina un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of DocumentoMediaFile</returns>
+        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> DocumentoMediaFileDeleteWithHttpInfo(string companyId, int id, int operationIndex = 0)
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileDelete");
+            }
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json",
+                "application/problem+json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            var localVarMultipartFormData = localVarContentType == "multipart/form-data";
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileDelete";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2ClientCredentials) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Delete<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileDelete", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Elimina un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of DocumentoMediaFile</returns>
+        public async System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileDeleteAsync(string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await DocumentoMediaFileDeleteWithHttpInfoAsync(companyId, id, operationIndex, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Elimina un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> DocumentoMediaFileDeleteWithHttpInfoAsync(string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileDelete");
+            }
+
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json",
+                "application/problem+json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileDelete";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2ClientCredentials) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileDelete", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Restituisce un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>DocumentoMediaFile</returns>
+        public DocumentoMediaFile DocumentoMediaFileGet(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0)
+        {
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = DocumentoMediaFileGetWithHttpInfo(companyId, id, expand);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Restituisce un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <returns>ApiResponse of DocumentoMediaFile</returns>
+        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> DocumentoMediaFileGetWithHttpInfo(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0)
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileGet");
+            }
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json",
+                "application/problem+json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            var localVarMultipartFormData = localVarContentType == "multipart/form-data";
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
+            if (expand != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
+            }
+
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileGet";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2ClientCredentials) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileGet", localVarResponse);
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Restituisce un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of DocumentoMediaFile</returns>
+        public async System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileGetAsync(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await DocumentoMediaFileGetWithHttpInfoAsync(companyId, id, expand, operationIndex, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Restituisce un elemento. 
+        /// </summary>
+        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
+        /// <param name="operationIndex">Index associated with the operation.</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> DocumentoMediaFileGetWithHttpInfoAsync(string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        {
+            // verify the required parameter 'companyId' is set
+            if (companyId == null)
+            {
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileGet");
+            }
+
+
+            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json",
+                "application/problem+json"
+            };
+
+            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+            }
+
+            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null)
+            {
+                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+            }
+
+            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
+            if (expand != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
+            }
+
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileGet";
+            localVarRequestOptions.OperationIndex = operationIndex;
+
+            // authentication (bearer) required
+            // bearer authentication required
+            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+            }
+            // authentication (oauth2ClientCredentials) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+            // authentication (oauth2) required
+            // oauth required
+            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
+            {
+                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
+                {
+                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
+                }
+                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
+                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
+                         this.Configuration.OAuthFlow != null)
+                {
+                    localVarRequestOptions.OAuth = true;
+                }
+            }
+
+            // make the HTTP request
+            var localVarResponse = await this.AsynchronousClient.GetAsync<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileGet", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -1102,19 +1504,18 @@ namespace Amica.Sdk.Api
         /// Restituisce una lista di elementi.  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>List&lt;DocumentoMediaFile&gt;</returns>
-        public List<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileGet(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0)
+        public List<DocumentoMediaFile> DocumentoMediaFileList(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> localVarResponse = ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfo(version, companyId, skip, take, skipTotalCount, filter, order, expand);
+            Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> localVarResponse = DocumentoMediaFileListWithHttpInfo(companyId, skip, take, skipTotalCount, filter, order, expand);
             return localVarResponse.Data;
         }
 
@@ -1122,28 +1523,21 @@ namespace Amica.Sdk.Api
         /// Restituisce una lista di elementi.  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of List&lt;DocumentoMediaFile&gt;</returns>
-        public Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfo(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> DocumentoMediaFileListWithHttpInfo(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0)
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileGet");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileGet");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileList");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -1170,7 +1564,6 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             if (skip != null)
             {
@@ -1197,7 +1590,7 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
             }
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileGet";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileList";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -1240,10 +1633,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<List<DocumentoMediaFile>>("/api/v{version}/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<List<DocumentoMediaFile>>("/api/v3/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileGet", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileList", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -1257,20 +1650,19 @@ namespace Amica.Sdk.Api
         /// Restituisce una lista di elementi.  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;DocumentoMediaFile&gt;</returns>
-        public async System.Threading.Tasks.Task<List<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileGetAsync(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<List<DocumentoMediaFile>> DocumentoMediaFileListAsync(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfoAsync(version, companyId, skip, take, skipTotalCount, filter, order, expand, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>> localVarResponse = await DocumentoMediaFileListWithHttpInfoAsync(companyId, skip, take, skipTotalCount, filter, order, expand, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -1278,29 +1670,22 @@ namespace Amica.Sdk.Api
         /// Restituisce una lista di elementi.  La risposta include due header con informazioni sui risultati.  &#x60;X-Read-TotalCount&#x60; indica il numero di elementi che soddisfano il filtro impostato nella query;  &#x60;X-Read-Count&#x60; indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri &#x60;Take&#x60; e &#x60;Skip&#x60; sono stati usati nelle opzioni di query.
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="skip"> (optional)</param>
-        /// <param name="take"> (optional)</param>
-        /// <param name="skipTotalCount"> (optional)</param>
-        /// <param name="filter"> (optional)</param>
-        /// <param name="order"> (optional)</param>
-        /// <param name="expand"> (optional)</param>
+        /// <param name="skip">Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="take">Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. (optional)</param>
+        /// <param name="skipTotalCount">Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. (optional)</param>
+        /// <param name="filter">Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. (optional)</param>
+        /// <param name="order">Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. (optional)</param>
+        /// <param name="expand">Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;DocumentoMediaFile&gt;)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>>> ApiVversionCompanyIdDocumentoMediaFileGetWithHttpInfoAsync(string version, string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<List<DocumentoMediaFile>>> DocumentoMediaFileListWithHttpInfoAsync(string companyId, int? skip = default(int?), int? take = default(int?), bool? skipTotalCount = default(bool?), string? filter = default(string?), string? order = default(string?), List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileGet");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileGet");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileList");
             }
 
 
@@ -1327,7 +1712,6 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
             if (skip != null)
             {
@@ -1354,7 +1738,7 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
             }
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileGet";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileList";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -1397,11 +1781,11 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<DocumentoMediaFile>>("/api/v{version}/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<DocumentoMediaFile>>("/api/v3/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileGet", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileList", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -1412,41 +1796,31 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Elimina un elemento. 
+        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoMediaFile</returns>
-        public DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdDelete(string version, string companyId, int id, int operationIndex = 0)
+        public DocumentoMediaFile DocumentoMediaFileNewInstance(string companyId, int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfo(version, companyId, id);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = DocumentoMediaFileNewInstanceWithHttpInfo(companyId);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Elimina un elemento. 
+        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfo(string version, string companyId, int id, int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> DocumentoMediaFileNewInstanceWithHttpInfo(string companyId, int operationIndex = 0)
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdDelete");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdDelete");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileNewInstance");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -1473,11 +1847,9 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdDelete";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileNewInstance";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -1520,10 +1892,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Delete<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/new", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdDelete", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileNewInstance", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -1534,43 +1906,33 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Elimina un elemento. 
+        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoMediaFile</returns>
-        public async System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdDeleteAsync(string version, string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFileNewInstanceAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfoAsync(version, companyId, id, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await DocumentoMediaFileNewInstanceWithHttpInfoAsync(companyId, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Elimina un elemento. 
+        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da eliminare.</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdDeleteWithHttpInfoAsync(string version, string companyId, int id, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> DocumentoMediaFileNewInstanceWithHttpInfoAsync(string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdDelete");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdDelete");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFileNewInstance");
             }
 
 
@@ -1597,11 +1959,9 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdDelete";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFileNewInstance";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -1644,11 +2004,11 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/new", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdDelete", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFileNewInstance", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -1659,306 +2019,37 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Restituisce un elemento. 
+        /// Salva un nuovo elemento. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>DocumentoMediaFile</returns>
-        public DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdGet(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0)
-        {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfo(version, companyId, id, expand);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// Restituisce un elemento. 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfo(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0)
-        {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdGet");
-            }
-
-            // verify the required parameter 'companyId' is set
-            if (companyId == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdGet");
-            }
-
-            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json",
-                "application/problem+json"
-            };
-
-            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            var localVarMultipartFormData = localVarContentType == "multipart/form-data";
-            if (localVarContentType != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-            }
-
-            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-            }
-
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
-            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (expand != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
-            }
-
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdGet";
-            localVarRequestOptions.OperationIndex = operationIndex;
-
-            // authentication (bearer) required
-            // bearer authentication required
-            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-            }
-            // authentication (oauth2ClientCredentials) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-            // authentication (oauth2) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdGet", localVarResponse);
-                if (_exception != null)
-                {
-                    throw _exception;
-                }
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// Restituisce un elemento. 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of DocumentoMediaFile</returns>
-        public async System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdGetAsync(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-        {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfoAsync(version, companyId, id, expand, operationIndex, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// Restituisce un elemento. 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID dell&#39;elemento da recuperare.</param>
-        /// <param name="expand"> (optional)</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdGetWithHttpInfoAsync(string version, string companyId, int id, List<string>? expand = default(List<string>?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-        {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdGet");
-            }
-
-            // verify the required parameter 'companyId' is set
-            if (companyId == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdGet");
-            }
-
-
-            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json",
-                "application/problem+json"
-            };
-
-            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-            }
-
-            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-            }
-
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
-            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (expand != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("multi", "Expand", expand));
-            }
-
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdGet";
-            localVarRequestOptions.OperationIndex = operationIndex;
-
-            // authentication (bearer) required
-            // bearer authentication required
-            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-            }
-            // authentication (oauth2ClientCredentials) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-            // authentication (oauth2) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-
-            // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.GetAsync<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdGet", localVarResponse);
-                if (_exception != null)
-                {
-                    throw _exception;
-                }
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// Aggiorna un elemento esistente. 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoMediaFile</returns>
-        public DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileIdPut(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
+        public DocumentoMediaFile DocumentoMediaFilePost(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoMediaFile);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = DocumentoMediaFilePostWithHttpInfo(companyId, validationOverride, idempotencyKey, documentoMediaFile);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Aggiorna un elemento esistente. 
+        /// Salva un nuovo elemento. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfo(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> DocumentoMediaFilePostWithHttpInfo(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdPut");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdPut");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFilePost");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -1988,9 +2079,7 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
             if (validationOverride != null)
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
@@ -2001,7 +2090,7 @@ namespace Amica.Sdk.Api
             }
             localVarRequestOptions.Data = documentoMediaFile;
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdPut";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFilePost";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -2044,10 +2133,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Put<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Post<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdPut", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFilePost", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -2058,49 +2147,39 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Aggiorna un elemento esistente. 
+        /// Salva un nuovo elemento. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoMediaFile</returns>
-        public async System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileIdPutAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFilePostAsync(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfoAsync(version, companyId, id, validationOverride, idempotencyKey, documentoMediaFile, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await DocumentoMediaFilePostWithHttpInfoAsync(companyId, validationOverride, idempotencyKey, documentoMediaFile, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Aggiorna un elemento esistente. 
+        /// Salva un nuovo elemento. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileIdPutWithHttpInfoAsync(string version, string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> DocumentoMediaFilePostWithHttpInfoAsync(string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdPut");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileIdPut");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFilePost");
             }
 
 
@@ -2130,9 +2209,7 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
             if (validationOverride != null)
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
@@ -2143,7 +2220,7 @@ namespace Amica.Sdk.Api
             }
             localVarRequestOptions.Data = documentoMediaFile;
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileIdPut";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFilePost";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -2186,11 +2263,11 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.PutAsync<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileIdPut", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFilePost", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -2201,286 +2278,39 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
+        /// Aggiorna un elemento esistente. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>DocumentoMediaFile</returns>
-        public DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFileNewGet(string version, string companyId, int operationIndex = 0)
-        {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfo(version, companyId);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfo(string version, string companyId, int operationIndex = 0)
-        {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileNewGet");
-            }
-
-            // verify the required parameter 'companyId' is set
-            if (companyId == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileNewGet");
-            }
-
-            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json",
-                "application/problem+json"
-            };
-
-            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            var localVarMultipartFormData = localVarContentType == "multipart/form-data";
-            if (localVarContentType != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-            }
-
-            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-            }
-
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
-            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileNewGet";
-            localVarRequestOptions.OperationIndex = operationIndex;
-
-            // authentication (bearer) required
-            // bearer authentication required
-            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-            }
-            // authentication (oauth2ClientCredentials) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-            // authentication (oauth2) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/new", localVarRequestOptions, this.Configuration);
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileNewGet", localVarResponse);
-                if (_exception != null)
-                {
-                    throw _exception;
-                }
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of DocumentoMediaFile</returns>
-        public async System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFileNewGetAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-        {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfoAsync(version, companyId, operationIndex, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
-        /// <param name="operationIndex">Index associated with the operation.</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFileNewGetWithHttpInfoAsync(string version, string companyId, int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
-        {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileNewGet");
-            }
-
-            // verify the required parameter 'companyId' is set
-            if (companyId == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFileNewGet");
-            }
-
-
-            Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json",
-                "application/problem+json"
-            };
-
-            var localVarContentType = Amica.Sdk.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-            }
-
-            var localVarAccept = Amica.Sdk.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null)
-            {
-                localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-            }
-
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
-            localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
-
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFileNewGet";
-            localVarRequestOptions.OperationIndex = operationIndex;
-
-            // authentication (bearer) required
-            // bearer authentication required
-            if (!string.IsNullOrEmpty(this.Configuration.AccessToken) && !localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-            }
-            // authentication (oauth2ClientCredentials) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-            // authentication (oauth2) required
-            // oauth required
-            if (!localVarRequestOptions.HeaderParameters.ContainsKey("Authorization"))
-            {
-                if (!string.IsNullOrEmpty(this.Configuration.AccessToken))
-                {
-                    localVarRequestOptions.HeaderParameters.Add("Authorization", "Bearer " + this.Configuration.AccessToken);
-                }
-                else if (!string.IsNullOrEmpty(this.Configuration.OAuthTokenUrl) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientId) &&
-                         !string.IsNullOrEmpty(this.Configuration.OAuthClientSecret) &&
-                         this.Configuration.OAuthFlow != null)
-                {
-                    localVarRequestOptions.OAuth = true;
-                }
-            }
-
-            // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.GetAsync<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile/new", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFileNewGet", localVarResponse);
-                if (_exception != null)
-                {
-                    throw _exception;
-                }
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// Salva un nuovo elemento. 
-        /// </summary>
-        /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
-        /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>DocumentoMediaFile</returns>
-        public DocumentoMediaFile ApiVversionCompanyIdDocumentoMediaFilePost(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
+        public DocumentoMediaFile DocumentoMediaFilePut(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, documentoMediaFile);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = DocumentoMediaFilePutWithHttpInfo(companyId, id, validationOverride, idempotencyKey, documentoMediaFile);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Salva un nuovo elemento. 
+        /// Aggiorna un elemento esistente. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <returns>ApiResponse of DocumentoMediaFile</returns>
-        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfo(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
+        public Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> DocumentoMediaFilePutWithHttpInfo(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0)
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFilePost");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFilePost");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFilePut");
             }
 
             Amica.Sdk.Client.RequestOptions localVarRequestOptions = new Amica.Sdk.Client.RequestOptions();
@@ -2510,8 +2340,8 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
             if (validationOverride != null)
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
@@ -2522,7 +2352,7 @@ namespace Amica.Sdk.Api
             }
             localVarRequestOptions.Data = documentoMediaFile;
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFilePost";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFilePut";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -2565,10 +2395,10 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = this.Client.Post<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Put<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration);
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFilePost", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFilePut", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;
@@ -2579,47 +2409,41 @@ namespace Amica.Sdk.Api
         }
 
         /// <summary>
-        /// Salva un nuovo elemento. 
+        /// Aggiorna un elemento esistente. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of DocumentoMediaFile</returns>
-        public async System.Threading.Tasks.Task<DocumentoMediaFile> ApiVversionCompanyIdDocumentoMediaFilePostAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<DocumentoMediaFile> DocumentoMediaFilePutAsync(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfoAsync(version, companyId, validationOverride, idempotencyKey, documentoMediaFile, operationIndex, cancellationToken).ConfigureAwait(false);
+            Amica.Sdk.Client.ApiResponse<DocumentoMediaFile> localVarResponse = await DocumentoMediaFilePutWithHttpInfoAsync(companyId, id, validationOverride, idempotencyKey, documentoMediaFile, operationIndex, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Salva un nuovo elemento. 
+        /// Aggiorna un elemento esistente. 
         /// </summary>
         /// <exception cref="Amica.Sdk.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="version">Versione API.</param>
         /// <param name="companyId">ID univoco dell&#39;azienda.</param>
+        /// <param name="id">ID univoco dell&#39;elemento da aggiornare.</param>
         /// <param name="validationOverride">Se applicare eventualmente l&#39;override della validazione. (optional)</param>
         /// <param name="idempotencyKey">Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. (optional)</param>
         /// <param name="documentoMediaFile">Istanza dell&#39;elemento da salvare. (optional)</param>
         /// <param name="operationIndex">Index associated with the operation.</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (DocumentoMediaFile)</returns>
-        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> ApiVversionCompanyIdDocumentoMediaFilePostWithHttpInfoAsync(string version, string companyId, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+        public async System.Threading.Tasks.Task<Amica.Sdk.Client.ApiResponse<DocumentoMediaFile>> DocumentoMediaFilePutWithHttpInfoAsync(string companyId, int id, bool? validationOverride = default(bool?), string? idempotencyKey = default(string?), DocumentoMediaFile? documentoMediaFile = default(DocumentoMediaFile?), int operationIndex = 0, System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
         {
-            // verify the required parameter 'version' is set
-            if (version == null)
-            {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'version' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFilePost");
-            }
-
             // verify the required parameter 'companyId' is set
             if (companyId == null)
             {
-                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->ApiVversionCompanyIdDocumentoMediaFilePost");
+                throw new Amica.Sdk.Client.ApiException(400, "Missing required parameter 'companyId' when calling DocumentoMediaFileApi->DocumentoMediaFilePut");
             }
 
 
@@ -2649,8 +2473,8 @@ namespace Amica.Sdk.Api
                 localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
             }
 
-            localVarRequestOptions.PathParameters.Add("version", Amica.Sdk.Client.ClientUtils.ParameterToString(version)); // path parameter
             localVarRequestOptions.PathParameters.Add("companyId", Amica.Sdk.Client.ClientUtils.ParameterToString(companyId)); // path parameter
+            localVarRequestOptions.PathParameters.Add("id", Amica.Sdk.Client.ClientUtils.ParameterToString(id)); // path parameter
             if (validationOverride != null)
             {
                 localVarRequestOptions.QueryParameters.Add(Amica.Sdk.Client.ClientUtils.ParameterToMultiMap("", "validationOverride", validationOverride));
@@ -2661,7 +2485,7 @@ namespace Amica.Sdk.Api
             }
             localVarRequestOptions.Data = documentoMediaFile;
 
-            localVarRequestOptions.Operation = "DocumentoMediaFileApi.ApiVversionCompanyIdDocumentoMediaFilePost";
+            localVarRequestOptions.Operation = "DocumentoMediaFileApi.DocumentoMediaFilePut";
             localVarRequestOptions.OperationIndex = operationIndex;
 
             // authentication (bearer) required
@@ -2704,11 +2528,11 @@ namespace Amica.Sdk.Api
             }
 
             // make the HTTP request
-            var localVarResponse = await this.AsynchronousClient.PostAsync<DocumentoMediaFile>("/api/v{version}/{companyId}/DocumentoMediaFile", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PutAsync<DocumentoMediaFile>("/api/v3/{companyId}/DocumentoMediaFile/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("ApiVversionCompanyIdDocumentoMediaFilePost", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DocumentoMediaFilePut", localVarResponse);
                 if (_exception != null)
                 {
                     throw _exception;

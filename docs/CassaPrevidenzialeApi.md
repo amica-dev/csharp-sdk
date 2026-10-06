@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
-| [**ApiVversionCompanyIdTabelleCassaPrevidenzialeGet**](CassaPrevidenzialeApi.md#apivversioncompanyidtabellecassaprevidenzialeget) | **GET** /api/v{version}/{companyId}/tabelle/CassaPrevidenziale | Restituisce il contenuto della tabella come lista di elementi. |
+| [**CassaPrevidenzialeList**](CassaPrevidenzialeApi.md#cassaprevidenzialelist) | **GET** /api/v3/{companyId}/tabelle/CassaPrevidenziale | Restituisce il contenuto della tabella come lista di elementi. |
 
-<a id="apivversioncompanyidtabellecassaprevidenzialeget"></a>
-# **ApiVversionCompanyIdTabelleCassaPrevidenzialeGet**
-> List&lt;CassaPrevidenziale&gt; ApiVversionCompanyIdTabelleCassaPrevidenzialeGet (string companyId, string version)
+<a id="cassaprevidenzialelist"></a>
+# **CassaPrevidenzialeList**
+> List&lt;CassaPrevidenziale&gt; CassaPrevidenzialeList (string companyId)
 
 Restituisce il contenuto della tabella come lista di elementi.
 
@@ -22,7 +22,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdTabelleCassaPrevidenzialeGetExample
+    public class CassaPrevidenzialeListExample
     {
         public static void Main()
         {
@@ -37,17 +37,16 @@ namespace Example
 
             var apiInstance = new CassaPrevidenzialeApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var version = "version_example";  // string | 
 
             try
             {
                 // Restituisce il contenuto della tabella come lista di elementi.
-                List<CassaPrevidenziale> result = apiInstance.ApiVversionCompanyIdTabelleCassaPrevidenzialeGet(companyId, version);
+                List<CassaPrevidenziale> result = apiInstance.CassaPrevidenzialeList(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling CassaPrevidenzialeApi.ApiVversionCompanyIdTabelleCassaPrevidenzialeGet: " + e.Message);
+                Debug.Print("Exception when calling CassaPrevidenzialeApi.CassaPrevidenzialeList: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -56,21 +55,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo variant
+#### Using the CassaPrevidenzialeListWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce il contenuto della tabella come lista di elementi.
-    ApiResponse<List<CassaPrevidenziale>> response = apiInstance.ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo(companyId, version);
+    ApiResponse<List<CassaPrevidenziale>> response = apiInstance.CassaPrevidenzialeListWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling CassaPrevidenzialeApi.ApiVversionCompanyIdTabelleCassaPrevidenzialeGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling CassaPrevidenzialeApi.CassaPrevidenzialeListWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -81,7 +80,6 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **version** | **string** |  |  |
 
 ### Return type
 

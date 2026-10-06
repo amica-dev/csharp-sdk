@@ -4,11 +4,11 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
-| [**ApiVversionCompanyIdTabelleCodicePagamentoGet**](CodicePagamentoApi.md#apivversioncompanyidtabellecodicepagamentoget) | **GET** /api/v{version}/{companyId}/tabelle/CodicePagamento | Restituisce il contenuto della tabella come lista di elementi. |
+| [**CodicePagamentoList**](CodicePagamentoApi.md#codicepagamentolist) | **GET** /api/v3/{companyId}/tabelle/CodicePagamento | Restituisce il contenuto della tabella come lista di elementi. |
 
-<a id="apivversioncompanyidtabellecodicepagamentoget"></a>
-# **ApiVversionCompanyIdTabelleCodicePagamentoGet**
-> List&lt;CodicePagamento&gt; ApiVversionCompanyIdTabelleCodicePagamentoGet (string companyId, string version)
+<a id="codicepagamentolist"></a>
+# **CodicePagamentoList**
+> List&lt;CodicePagamento&gt; CodicePagamentoList (string companyId)
 
 Restituisce il contenuto della tabella come lista di elementi.
 
@@ -22,7 +22,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdTabelleCodicePagamentoGetExample
+    public class CodicePagamentoListExample
     {
         public static void Main()
         {
@@ -37,17 +37,16 @@ namespace Example
 
             var apiInstance = new CodicePagamentoApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var version = "version_example";  // string | 
 
             try
             {
                 // Restituisce il contenuto della tabella come lista di elementi.
-                List<CodicePagamento> result = apiInstance.ApiVversionCompanyIdTabelleCodicePagamentoGet(companyId, version);
+                List<CodicePagamento> result = apiInstance.CodicePagamentoList(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling CodicePagamentoApi.ApiVversionCompanyIdTabelleCodicePagamentoGet: " + e.Message);
+                Debug.Print("Exception when calling CodicePagamentoApi.CodicePagamentoList: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -56,21 +55,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdTabelleCodicePagamentoGetWithHttpInfo variant
+#### Using the CodicePagamentoListWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce il contenuto della tabella come lista di elementi.
-    ApiResponse<List<CodicePagamento>> response = apiInstance.ApiVversionCompanyIdTabelleCodicePagamentoGetWithHttpInfo(companyId, version);
+    ApiResponse<List<CodicePagamento>> response = apiInstance.CodicePagamentoListWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling CodicePagamentoApi.ApiVversionCompanyIdTabelleCodicePagamentoGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling CodicePagamentoApi.CodicePagamentoListWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -81,7 +80,6 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **version** | **string** |  |  |
 
 ### Return type
 

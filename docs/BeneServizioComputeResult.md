@@ -1,13 +1,14 @@
 # Amica.Sdk.Model.BeneServizioComputeResult
+Restituito dal metodo `Compute` di `BeneServizioServizio`.
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Prezzo** | **double** |  | [optional] 
-**PrezzoIvato** | **double** |  | [optional] 
-**PrezzoScontato** | **double** |  | [optional] 
-**Importo** | **double?** |  | [optional] 
+**Prezzo** | **double** | Prezzo IVA esclusa. | [optional] 
+**PrezzoIvato** | **double** | Prezzo IVA inclusa. | [optional] 
+**PrezzoScontato** | **double** | Prezzo scontato, ovvero al netto degli sconti percentuali indicati e dello sconto incondizionato. | [optional] 
+**Importo** | **double?** | Importo, determinato come prodotto tra &#x60;Quantità&#x60; e &#x60;PrezzoScontato&#x60;. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

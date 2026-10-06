@@ -1,4 +1,5 @@
 # Amica.Sdk.Model.CollegaDocumentoData
+Documenti da referenziare nel documento.
 
 ## Properties
 

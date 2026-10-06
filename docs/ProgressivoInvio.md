@@ -1,13 +1,14 @@
 # Amica.Sdk.Model.ProgressivoInvio
+Numero progressivo di invio al Sistema di Interscambio (SdI).
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Id** | **int** |  | [optional] 
-**ConcurrencyToken** | **int** |  | [optional] 
-**DocumentoId** | **int** |  | [optional] 
-**Progressivo** | **string** |  | 
+**Id** | **int** | Identificativo univoco. | [optional] 
+**ConcurrencyToken** | **int** | Il token di concorrenza implementa il controllo di concorrenza ottimistica: a ogni operazione di aggiornamento o cancellazione il valore del token sul database viene confrontato con quello sull&#39;entità. Se i valori coincidono, l&#39;operazione viene eseguita; se differiscono, si assume che un altro utente abbia effettuato una scrittura nel frattempo e l&#39;aggiornamento viene rifiutato. | [optional] 
+**DocumentoId** | **int** | Riferimento a &#x60;Documento&#x60;. | [optional] 
+**Progressivo** | **string** | Numero progressivo di invio al Sistema di Interscambio (SdI). | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

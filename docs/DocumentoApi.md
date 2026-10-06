@@ -4,28 +4,28 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
-| [**ApiVversionCompanyIdDocumentoComputePost**](DocumentoApi.md#apivversioncompanyiddocumentocomputepost) | **POST** /api/v{version}/{companyId}/Documento/compute | Calcola i totali di un documento. |
-| [**ApiVversionCompanyIdDocumentoDistinctGet**](DocumentoApi.md#apivversioncompanyiddocumentodistinctget) | **GET** /api/v{version}/{companyId}/Documento/distinct | Restituisce una lista di elementi distinti. |
-| [**ApiVversionCompanyIdDocumentoDocumentoIdEmitPost**](DocumentoApi.md#apivversioncompanyiddocumentodocumentoidemitpost) | **POST** /api/v{version}/{companyId}/Documento/{documentoId}/emit | Emette un documento. |
-| [**ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost**](DocumentoApi.md#apivversioncompanyiddocumentodocumentoidnewinstancefromtemplatepost) | **POST** /api/v{version}/{companyId}/Documento/{documentoId}/newinstancefromtemplate | Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.). |
-| [**ApiVversionCompanyIdDocumentoGet**](DocumentoApi.md#apivversioncompanyiddocumentoget) | **GET** /api/v{version}/{companyId}/Documento | Restituisce una lista di elementi. |
-| [**ApiVversionCompanyIdDocumentoIdDelete**](DocumentoApi.md#apivversioncompanyiddocumentoiddelete) | **DELETE** /api/v{version}/{companyId}/Documento/{id} | Elimina un elemento. |
-| [**ApiVversionCompanyIdDocumentoIdGet**](DocumentoApi.md#apivversioncompanyiddocumentoidget) | **GET** /api/v{version}/{companyId}/Documento/{id} | Restituisce un elemento. |
-| [**ApiVversionCompanyIdDocumentoIdImportAccontoPost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportaccontopost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/acconto | Importa righe da uno o più acconti in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdImportDdtPost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportddtpost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/ddt | Importa righe da uno o più DDT in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdImportOrdinePost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportordinepost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/ordine | Importa righe da uno o più ordini in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdImportPreventivoPost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportpreventivopost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/preventivo | Importa righe da uno o più preventivi in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdImportProformaPost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportproformapost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/proforma | Importa righe da una o più fatture proforma in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdImportResoPost**](DocumentoApi.md#apivversioncompanyiddocumentoidimportresopost) | **POST** /api/v{version}/{companyId}/Documento/{id}/import/reso | Importa righe da uno o più resi in un documento esistente. |
-| [**ApiVversionCompanyIdDocumentoIdPut**](DocumentoApi.md#apivversioncompanyiddocumentoidput) | **PUT** /api/v{version}/{companyId}/Documento/{id} | Aggiorna un elemento esistente. |
-| [**ApiVversionCompanyIdDocumentoNewGet**](DocumentoApi.md#apivversioncompanyiddocumentonewget) | **GET** /api/v{version}/{companyId}/Documento/new | Restituisce una nuova istanza di un documento del tipo specificato. |
-| [**ApiVversionCompanyIdDocumentoPeriodicinvoicingPost**](DocumentoApi.md#apivversioncompanyiddocumentoperiodicinvoicingpost) | **POST** /api/v{version}/{companyId}/Documento/periodicinvoicing | Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica. |
-| [**ApiVversionCompanyIdDocumentoPost**](DocumentoApi.md#apivversioncompanyiddocumentopost) | **POST** /api/v{version}/{companyId}/Documento | Salva un nuovo elemento. |
-| [**ApiVversionCompanyIdDocumentoTotaliGet**](DocumentoApi.md#apivversioncompanyiddocumentototaliget) | **GET** /api/v{version}/{companyId}/Documento/totali | Restituisce i totali dei documenti che soddisfano il filtro, eventualmente raggruppati per mese, anno o anagrafica. I totali sono calcolati dal server: per conoscere il fatturato di un periodo non serve scaricare i documenti. |
+| [**DocumentoCompute**](DocumentoApi.md#documentocompute) | **POST** /api/v3/{companyId}/Documento/compute | Calcola i totali di un documento. |
+| [**DocumentoDelete**](DocumentoApi.md#documentodelete) | **DELETE** /api/v3/{companyId}/Documento/{id} | Elimina un elemento. |
+| [**DocumentoDistinct**](DocumentoApi.md#documentodistinct) | **GET** /api/v3/{companyId}/Documento/distinct | Restituisce una lista di elementi distinti. |
+| [**DocumentoEmit**](DocumentoApi.md#documentoemit) | **POST** /api/v3/{companyId}/Documento/{documentoId}/emit | Emette un documento. |
+| [**DocumentoGet**](DocumentoApi.md#documentoget) | **GET** /api/v3/{companyId}/Documento/{id} | Restituisce un elemento. |
+| [**DocumentoImportAcconti**](DocumentoApi.md#documentoimportacconti) | **POST** /api/v3/{companyId}/Documento/{id}/import/acconto | Importa righe da uno o più acconti in un documento esistente. |
+| [**DocumentoImportDdt**](DocumentoApi.md#documentoimportddt) | **POST** /api/v3/{companyId}/Documento/{id}/import/ddt | Importa righe da uno o più DDT in un documento esistente. |
+| [**DocumentoImportOrdini**](DocumentoApi.md#documentoimportordini) | **POST** /api/v3/{companyId}/Documento/{id}/import/ordine | Importa righe da uno o più ordini in un documento esistente. |
+| [**DocumentoImportPreventivi**](DocumentoApi.md#documentoimportpreventivi) | **POST** /api/v3/{companyId}/Documento/{id}/import/preventivo | Importa righe da uno o più preventivi in un documento esistente. |
+| [**DocumentoImportProForma**](DocumentoApi.md#documentoimportproforma) | **POST** /api/v3/{companyId}/Documento/{id}/import/proforma | Importa righe da una o più fatture proforma in un documento esistente. |
+| [**DocumentoImportResi**](DocumentoApi.md#documentoimportresi) | **POST** /api/v3/{companyId}/Documento/{id}/import/reso | Importa righe da uno o più resi in un documento esistente. |
+| [**DocumentoList**](DocumentoApi.md#documentolist) | **GET** /api/v3/{companyId}/Documento | Restituisce una lista di elementi. |
+| [**DocumentoNewInstance**](DocumentoApi.md#documentonewinstance) | **GET** /api/v3/{companyId}/Documento/new | Restituisce una nuova istanza di un documento del tipo specificato. |
+| [**DocumentoNewInstanceFromTemplate**](DocumentoApi.md#documentonewinstancefromtemplate) | **POST** /api/v3/{companyId}/Documento/{documentoId}/newinstancefromtemplate | Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.). |
+| [**DocumentoPeriodicInvoicing**](DocumentoApi.md#documentoperiodicinvoicing) | **POST** /api/v3/{companyId}/Documento/periodicinvoicing | Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica. |
+| [**DocumentoPost**](DocumentoApi.md#documentopost) | **POST** /api/v3/{companyId}/Documento | Salva un nuovo elemento. |
+| [**DocumentoPut**](DocumentoApi.md#documentoput) | **PUT** /api/v3/{companyId}/Documento/{id} | Aggiorna un elemento esistente. |
+| [**DocumentoTotali**](DocumentoApi.md#documentototali) | **GET** /api/v3/{companyId}/Documento/totali | Restituisce i totali dei documenti che soddisfano il filtro, eventualmente raggruppati per mese, anno o anagrafica. I totali sono calcolati dal server: per conoscere il fatturato di un periodo non serve scaricare i documenti. |
 
-<a id="apivversioncompanyiddocumentocomputepost"></a>
-# **ApiVversionCompanyIdDocumentoComputePost**
-> DocumentoComputeResult ApiVversionCompanyIdDocumentoComputePost (string version, string companyId, string? idempotencyKey = null, DocumentoComputeData? documentoComputeData = null)
+<a id="documentocompute"></a>
+# **DocumentoCompute**
+> DocumentoComputeResult DocumentoCompute (string companyId, string? idempotencyKey = null, DocumentoComputeData? documentoComputeData = null)
 
 Calcola i totali di un documento.
 
@@ -39,7 +39,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoComputePostExample
+    public class DocumentoComputeExample
     {
         public static void Main()
         {
@@ -53,7 +53,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
             var documentoComputeData = new DocumentoComputeData?(); // DocumentoComputeData? | Dati di input per l'operazione di calcolo. (optional) 
@@ -61,12 +60,12 @@ namespace Example
             try
             {
                 // Calcola i totali di un documento.
-                DocumentoComputeResult result = apiInstance.ApiVversionCompanyIdDocumentoComputePost(version, companyId, idempotencyKey, documentoComputeData);
+                DocumentoComputeResult result = apiInstance.DocumentoCompute(companyId, idempotencyKey, documentoComputeData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoComputePost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoCompute: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -75,21 +74,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoComputePostWithHttpInfo variant
+#### Using the DocumentoComputeWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Calcola i totali di un documento.
-    ApiResponse<DocumentoComputeResult> response = apiInstance.ApiVversionCompanyIdDocumentoComputePostWithHttpInfo(version, companyId, idempotencyKey, documentoComputeData);
+    ApiResponse<DocumentoComputeResult> response = apiInstance.DocumentoComputeWithHttpInfo(companyId, idempotencyKey, documentoComputeData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoComputePostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoComputeWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -99,7 +98,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
 | **documentoComputeData** | [**DocumentoComputeData?**](DocumentoComputeData?.md) | Dati di input per l&#39;operazione di calcolo. | [optional]  |
@@ -131,11 +129,11 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentodistinctget"></a>
-# **ApiVversionCompanyIdDocumentoDistinctGet**
-> List&lt;DistinctPropertyGroup&gt; ApiVversionCompanyIdDocumentoDistinctGet (string version, string companyId, string selector, int? skip = null, int? take = null)
+<a id="documentodelete"></a>
+# **DocumentoDelete**
+> Documento DocumentoDelete (string companyId, int id)
 
-Restituisce una lista di elementi distinti.
+Elimina un elemento.
 
 ### Example
 ```csharp
@@ -147,7 +145,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoDistinctGetExample
+    public class DocumentoDeleteExample
     {
         public static void Main()
         {
@@ -161,21 +159,18 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var selector = RagioneSociale1;  // string | Il campo usato per distinguere gli elementi.
-            var skip = 100;  // int? | Numero di elementi, a partire dal primo, da escludere dal risultato. Combinato con `Take`, è utile per la paginazione. (optional) 
-            var take = 25;  // int? | Numero di elementi da includere nel risultato. Combinato con `Skip`, è utile per la paginazione. (optional) 
+            var id = 56;  // int | ID dell'elemento da eliminare.
 
             try
             {
-                // Restituisce una lista di elementi distinti.
-                List<DistinctPropertyGroup> result = apiInstance.ApiVversionCompanyIdDocumentoDistinctGet(version, companyId, selector, skip, take);
+                // Elimina un elemento.
+                Documento result = apiInstance.DocumentoDelete(companyId, id);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDistinctGet: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoDelete: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -184,21 +179,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoDistinctGetWithHttpInfo variant
+#### Using the DocumentoDeleteWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
-    // Restituisce una lista di elementi distinti.
-    ApiResponse<List<DistinctPropertyGroup>> response = apiInstance.ApiVversionCompanyIdDocumentoDistinctGetWithHttpInfo(version, companyId, selector, skip, take);
+    // Elimina un elemento.
+    ApiResponse<Documento> response = apiInstance.DocumentoDeleteWithHttpInfo(companyId, id);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDistinctGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoDeleteWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -208,7 +203,111 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
+| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **id** | **int** | ID dell&#39;elemento da eliminare. |  |
+
+### Return type
+
+[**Documento**](Documento.md)
+
+### Authorization
+
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successo. Restituisce l&#39;elemento eliminato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
+| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+<a id="documentodistinct"></a>
+# **DocumentoDistinct**
+> List&lt;DistinctPropertyGroup&gt; DocumentoDistinct (string companyId, string selector, int? skip = null, int? take = null)
+
+Restituisce una lista di elementi distinti.
+
+### Example
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Amica.Sdk.Api;
+using Amica.Sdk.Client;
+using Amica.Sdk.Model;
+
+namespace Example
+{
+    public class DocumentoDistinctExample
+    {
+        public static void Main()
+        {
+            Configuration config = new Configuration();
+            config.BasePath = "http://localhost";
+            // Configure Bearer token for authorization: bearer
+            config.AccessToken = "YOUR_BEARER_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+
+            var apiInstance = new DocumentoApi(config);
+            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var selector = TipoDocumento;  // string | Il campo usato per distinguere gli elementi.
+            var skip = 100;  // int? | Numero di elementi, a partire dal primo, da escludere dal risultato. Combinato con `Take`, è utile per la paginazione. (optional) 
+            var take = 25;  // int? | Numero di elementi da includere nel risultato. Combinato con `Skip`, è utile per la paginazione. (optional) 
+
+            try
+            {
+                // Restituisce una lista di elementi distinti.
+                List<DistinctPropertyGroup> result = apiInstance.DocumentoDistinct(companyId, selector, skip, take);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException  e)
+            {
+                Debug.Print("Exception when calling DocumentoApi.DocumentoDistinct: " + e.Message);
+                Debug.Print("Status Code: " + e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+        }
+    }
+}
+```
+
+#### Using the DocumentoDistinctWithHttpInfo variant
+This returns an ApiResponse object which contains the response data, status code and headers.
+
+```csharp
+try
+{
+    // Restituisce una lista di elementi distinti.
+    ApiResponse<List<DistinctPropertyGroup>> response = apiInstance.DocumentoDistinctWithHttpInfo(companyId, selector, skip, take);
+    Debug.Write("Status Code: " + response.StatusCode);
+    Debug.Write("Response Headers: " + response.Headers);
+    Debug.Write("Response Body: " + response.Data);
+}
+catch (ApiException e)
+{
+    Debug.Print("Exception when calling DocumentoApi.DocumentoDistinctWithHttpInfo: " + e.Message);
+    Debug.Print("Status Code: " + e.ErrorCode);
+    Debug.Print(e.StackTrace);
+}
+```
+
+### Parameters
+
+| Name | Type | Description | Notes |
+|------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **selector** | **string** | Il campo usato per distinguere gli elementi. |  |
 | **skip** | **int?** | Numero di elementi, a partire dal primo, da escludere dal risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. | [optional]  |
@@ -239,9 +338,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentodocumentoidemitpost"></a>
-# **ApiVversionCompanyIdDocumentoDocumentoIdEmitPost**
-> Documento ApiVversionCompanyIdDocumentoDocumentoIdEmitPost (string version, string companyId, int documentoId, string? idempotencyKey = null)
+<a id="documentoemit"></a>
+# **DocumentoEmit**
+> Documento DocumentoEmit (string companyId, int documentoId, string? idempotencyKey = null)
 
 Emette un documento.
 
@@ -257,7 +356,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoDocumentoIdEmitPostExample
+    public class DocumentoEmitExample
     {
         public static void Main()
         {
@@ -271,7 +370,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var documentoId = 56;  // int | ID univoco del documento da emettere.
             var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
@@ -279,12 +377,12 @@ namespace Example
             try
             {
                 // Emette un documento.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoDocumentoIdEmitPost(version, companyId, documentoId, idempotencyKey);
+                Documento result = apiInstance.DocumentoEmit(companyId, documentoId, idempotencyKey);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdEmitPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoEmit: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -293,21 +391,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo variant
+#### Using the DocumentoEmitWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Emette un documento.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo(version, companyId, documentoId, idempotencyKey);
+    ApiResponse<Documento> response = apiInstance.DocumentoEmitWithHttpInfo(companyId, documentoId, idempotencyKey);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdEmitPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoEmitWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -317,7 +415,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **documentoId** | **int** | ID univoco del documento da emettere. |  |
 | **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
@@ -350,337 +447,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentodocumentoidnewinstancefromtemplatepost"></a>
-# **ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost**
-> Documento ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost (string version, int documentoId, string companyId, string? idempotencyKey = null)
-
-Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
-
-### Example
-```csharp
-using System.Collections.Generic;
-using System.Diagnostics;
-using Amica.Sdk.Api;
-using Amica.Sdk.Client;
-using Amica.Sdk.Model;
-
-namespace Example
-{
-    public class ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostExample
-    {
-        public static void Main()
-        {
-            Configuration config = new Configuration();
-            config.BasePath = "http://localhost";
-            // Configure Bearer token for authorization: bearer
-            config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-
-            var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
-            var documentoId = 56;  // int | ID univoco del documento.
-            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
-
-            try
-            {
-                // Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost(version, documentoId, companyId, idempotencyKey);
-                Debug.WriteLine(result);
-            }
-            catch (ApiException  e)
-            {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePost: " + e.Message);
-                Debug.Print("Status Code: " + e.ErrorCode);
-                Debug.Print(e.StackTrace);
-            }
-        }
-    }
-}
-```
-
-#### Using the ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo variant
-This returns an ApiResponse object which contains the response data, status code and headers.
-
-```csharp
-try
-{
-    // Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo(version, documentoId, companyId, idempotencyKey);
-    Debug.Write("Status Code: " + response.StatusCode);
-    Debug.Write("Response Headers: " + response.Headers);
-    Debug.Write("Response Body: " + response.Data);
-}
-catch (ApiException e)
-{
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoDocumentoIdNewinstancefromtemplatePostWithHttpInfo: " + e.Message);
-    Debug.Print("Status Code: " + e.ErrorCode);
-    Debug.Print(e.StackTrace);
-}
-```
-
-### Parameters
-
-| Name | Type | Description | Notes |
-|------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
-| **documentoId** | **int** | ID univoco del documento. |  |
-| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
-
-### Return type
-
-[**Documento**](Documento.md)
-
-### Authorization
-
-[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: text/plain, application/json, text/json, application/problem+json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
-| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
-| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
-| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-<a id="apivversioncompanyiddocumentoget"></a>
-# **ApiVversionCompanyIdDocumentoGet**
-> List&lt;Documento&gt; ApiVversionCompanyIdDocumentoGet (string version, string companyId, int? skip = null, int? take = null, bool? skipTotalCount = null, string? filter = null, string? order = null, List<string>? expand = null)
-
-Restituisce una lista di elementi.
-
- La risposta include due header con informazioni sui risultati.  `X-Read-TotalCount` indica il numero di elementi che soddisfano il filtro impostato nella query;  `X-Read-Count` indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri `Take` e `Skip` sono stati usati nelle opzioni di query.
-
-### Example
-```csharp
-using System.Collections.Generic;
-using System.Diagnostics;
-using Amica.Sdk.Api;
-using Amica.Sdk.Client;
-using Amica.Sdk.Model;
-
-namespace Example
-{
-    public class ApiVversionCompanyIdDocumentoGetExample
-    {
-        public static void Main()
-        {
-            Configuration config = new Configuration();
-            config.BasePath = "http://localhost";
-            // Configure Bearer token for authorization: bearer
-            config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-
-            var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
-            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var skip = 56;  // int? |  (optional) 
-            var take = 56;  // int? |  (optional) 
-            var skipTotalCount = true;  // bool? |  (optional) 
-            var filter = "filter_example";  // string? |  (optional) 
-            var order = "order_example";  // string? |  (optional) 
-            var expand = new List<string>?(); // List<string>? |  (optional) 
-
-            try
-            {
-                // Restituisce una lista di elementi.
-                List<Documento> result = apiInstance.ApiVversionCompanyIdDocumentoGet(version, companyId, skip, take, skipTotalCount, filter, order, expand);
-                Debug.WriteLine(result);
-            }
-            catch (ApiException  e)
-            {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoGet: " + e.Message);
-                Debug.Print("Status Code: " + e.ErrorCode);
-                Debug.Print(e.StackTrace);
-            }
-        }
-    }
-}
-```
-
-#### Using the ApiVversionCompanyIdDocumentoGetWithHttpInfo variant
-This returns an ApiResponse object which contains the response data, status code and headers.
-
-```csharp
-try
-{
-    // Restituisce una lista di elementi.
-    ApiResponse<List<Documento>> response = apiInstance.ApiVversionCompanyIdDocumentoGetWithHttpInfo(version, companyId, skip, take, skipTotalCount, filter, order, expand);
-    Debug.Write("Status Code: " + response.StatusCode);
-    Debug.Write("Response Headers: " + response.Headers);
-    Debug.Write("Response Body: " + response.Data);
-}
-catch (ApiException e)
-{
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoGetWithHttpInfo: " + e.Message);
-    Debug.Print("Status Code: " + e.ErrorCode);
-    Debug.Print(e.StackTrace);
-}
-```
-
-### Parameters
-
-| Name | Type | Description | Notes |
-|------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
-| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **skip** | **int?** |  | [optional]  |
-| **take** | **int?** |  | [optional]  |
-| **skipTotalCount** | **bool?** |  | [optional]  |
-| **filter** | **string?** |  | [optional]  |
-| **order** | **string?** |  | [optional]  |
-| **expand** | [**List&lt;string&gt;?**](string.md) |  | [optional]  |
-
-### Return type
-
-[**List&lt;Documento&gt;**](Documento.md)
-
-### Authorization
-
-[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json, application/problem+json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successo. Restituisce la lista degli elementi corrispondenti ai criteri di ricerca. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
-| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
-| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-<a id="apivversioncompanyiddocumentoiddelete"></a>
-# **ApiVversionCompanyIdDocumentoIdDelete**
-> Documento ApiVversionCompanyIdDocumentoIdDelete (string version, string companyId, int id)
-
-Elimina un elemento.
-
-### Example
-```csharp
-using System.Collections.Generic;
-using System.Diagnostics;
-using Amica.Sdk.Api;
-using Amica.Sdk.Client;
-using Amica.Sdk.Model;
-
-namespace Example
-{
-    public class ApiVversionCompanyIdDocumentoIdDeleteExample
-    {
-        public static void Main()
-        {
-            Configuration config = new Configuration();
-            config.BasePath = "http://localhost";
-            // Configure Bearer token for authorization: bearer
-            config.AccessToken = "YOUR_BEARER_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-            // Configure OAuth2 access token for authorization: oauth2
-            config.AccessToken = "YOUR_ACCESS_TOKEN";
-
-            var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
-            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var id = 56;  // int | ID dell'elemento da eliminare.
-
-            try
-            {
-                // Elimina un elemento.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdDelete(version, companyId, id);
-                Debug.WriteLine(result);
-            }
-            catch (ApiException  e)
-            {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdDelete: " + e.Message);
-                Debug.Print("Status Code: " + e.ErrorCode);
-                Debug.Print(e.StackTrace);
-            }
-        }
-    }
-}
-```
-
-#### Using the ApiVversionCompanyIdDocumentoIdDeleteWithHttpInfo variant
-This returns an ApiResponse object which contains the response data, status code and headers.
-
-```csharp
-try
-{
-    // Elimina un elemento.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdDeleteWithHttpInfo(version, companyId, id);
-    Debug.Write("Status Code: " + response.StatusCode);
-    Debug.Write("Response Headers: " + response.Headers);
-    Debug.Write("Response Body: " + response.Data);
-}
-catch (ApiException e)
-{
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdDeleteWithHttpInfo: " + e.Message);
-    Debug.Print("Status Code: " + e.ErrorCode);
-    Debug.Print(e.StackTrace);
-}
-```
-
-### Parameters
-
-| Name | Type | Description | Notes |
-|------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
-| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **id** | **int** | ID dell&#39;elemento da eliminare. |  |
-
-### Return type
-
-[**Documento**](Documento.md)
-
-### Authorization
-
-[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json, application/problem+json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successo. Restituisce l&#39;elemento eliminato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
-| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
-| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-<a id="apivversioncompanyiddocumentoidget"></a>
-# **ApiVversionCompanyIdDocumentoIdGet**
-> Documento ApiVversionCompanyIdDocumentoIdGet (string version, string companyId, int id, List<string>? expand = null)
+<a id="documentoget"></a>
+# **DocumentoGet**
+> Documento DocumentoGet (string companyId, int id, List<string>? expand = null)
 
 Restituisce un elemento.
 
@@ -694,7 +463,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdGetExample
+    public class DocumentoGetExample
     {
         public static void Main()
         {
@@ -708,20 +477,19 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID dell'elemento da recuperare.
-            var expand = new List<string>?(); // List<string>? |  (optional) 
+            var expand = new List<string>?(); // List<string>? | Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un'unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge `expand=Rows` alla chiamata. (optional) 
 
             try
             {
                 // Restituisce un elemento.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdGet(version, companyId, id, expand);
+                Documento result = apiInstance.DocumentoGet(companyId, id, expand);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdGet: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoGet: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -730,21 +498,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdGetWithHttpInfo variant
+#### Using the DocumentoGetWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce un elemento.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdGetWithHttpInfo(version, companyId, id, expand);
+    ApiResponse<Documento> response = apiInstance.DocumentoGetWithHttpInfo(companyId, id, expand);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoGetWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -754,10 +522,9 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID dell&#39;elemento da recuperare. |  |
-| **expand** | [**List&lt;string&gt;?**](string.md) |  | [optional]  |
+| **expand** | [**List&lt;string&gt;?**](string.md) | Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. | [optional]  |
 
 ### Return type
 
@@ -785,9 +552,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportaccontopost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportAccontoPost**
-> Documento ApiVversionCompanyIdDocumentoIdImportAccontoPost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
+<a id="documentoimportacconti"></a>
+# **DocumentoImportAcconti**
+> Documento DocumentoImportAcconti (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
 
 Importa righe da uno o più acconti in un documento esistente.
 
@@ -801,7 +568,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportAccontoPostExample
+    public class DocumentoImportAccontiExample
     {
         public static void Main()
         {
@@ -815,7 +582,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -825,12 +591,12 @@ namespace Example
             try
             {
                 // Importa righe da uno o più acconti in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportAccontoPost(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+                Documento result = apiInstance.DocumentoImportAcconti(companyId, id, validationOverride, idempotencyKey, documentoImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportAccontoPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportAcconti: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -839,21 +605,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo variant
+#### Using the DocumentoImportAccontiWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da uno o più acconti in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportAccontiWithHttpInfo(companyId, id, validationOverride, idempotencyKey, documentoImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportAccontoPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportAccontiWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -863,7 +629,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -898,9 +663,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportddtpost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportDdtPost**
-> Documento ApiVversionCompanyIdDocumentoIdImportDdtPost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DdtImportData? ddtImportData = null)
+<a id="documentoimportddt"></a>
+# **DocumentoImportDdt**
+> Documento DocumentoImportDdt (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DdtImportData? ddtImportData = null)
 
 Importa righe da uno o più DDT in un documento esistente.
 
@@ -914,7 +679,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportDdtPostExample
+    public class DocumentoImportDdtExample
     {
         public static void Main()
         {
@@ -928,7 +693,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -938,12 +702,12 @@ namespace Example
             try
             {
                 // Importa righe da uno o più DDT in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportDdtPost(version, companyId, id, validationOverride, idempotencyKey, ddtImportData);
+                Documento result = apiInstance.DocumentoImportDdt(companyId, id, validationOverride, idempotencyKey, ddtImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportDdtPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportDdt: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -952,21 +716,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo variant
+#### Using the DocumentoImportDdtWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da uno o più DDT in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, ddtImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportDdtWithHttpInfo(companyId, id, validationOverride, idempotencyKey, ddtImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportDdtPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportDdtWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -976,7 +740,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1011,9 +774,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportordinepost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportOrdinePost**
-> Documento ApiVversionCompanyIdDocumentoIdImportOrdinePost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, OrdiniImportData? ordiniImportData = null)
+<a id="documentoimportordini"></a>
+# **DocumentoImportOrdini**
+> Documento DocumentoImportOrdini (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, OrdiniImportData? ordiniImportData = null)
 
 Importa righe da uno o più ordini in un documento esistente.
 
@@ -1027,7 +790,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportOrdinePostExample
+    public class DocumentoImportOrdiniExample
     {
         public static void Main()
         {
@@ -1041,7 +804,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -1051,12 +813,12 @@ namespace Example
             try
             {
                 // Importa righe da uno o più ordini in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportOrdinePost(version, companyId, id, validationOverride, idempotencyKey, ordiniImportData);
+                Documento result = apiInstance.DocumentoImportOrdini(companyId, id, validationOverride, idempotencyKey, ordiniImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportOrdinePost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportOrdini: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1065,21 +827,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo variant
+#### Using the DocumentoImportOrdiniWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da uno o più ordini in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, ordiniImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportOrdiniWithHttpInfo(companyId, id, validationOverride, idempotencyKey, ordiniImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportOrdinePostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportOrdiniWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1089,7 +851,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1124,9 +885,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportpreventivopost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportPreventivoPost**
-> Documento ApiVversionCompanyIdDocumentoIdImportPreventivoPost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
+<a id="documentoimportpreventivi"></a>
+# **DocumentoImportPreventivi**
+> Documento DocumentoImportPreventivi (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
 
 Importa righe da uno o più preventivi in un documento esistente.
 
@@ -1140,7 +901,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportPreventivoPostExample
+    public class DocumentoImportPreventiviExample
     {
         public static void Main()
         {
@@ -1154,7 +915,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -1164,12 +924,12 @@ namespace Example
             try
             {
                 // Importa righe da uno o più preventivi in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportPreventivoPost(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+                Documento result = apiInstance.DocumentoImportPreventivi(companyId, id, validationOverride, idempotencyKey, documentoImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportPreventivoPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportPreventivi: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1178,21 +938,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo variant
+#### Using the DocumentoImportPreventiviWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da uno o più preventivi in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportPreventiviWithHttpInfo(companyId, id, validationOverride, idempotencyKey, documentoImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportPreventivoPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportPreventiviWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1202,7 +962,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1237,9 +996,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportproformapost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportProformaPost**
-> Documento ApiVversionCompanyIdDocumentoIdImportProformaPost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
+<a id="documentoimportproforma"></a>
+# **DocumentoImportProForma**
+> Documento DocumentoImportProForma (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, DocumentoImportData? documentoImportData = null)
 
 Importa righe da una o più fatture proforma in un documento esistente.
 
@@ -1253,7 +1012,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportProformaPostExample
+    public class DocumentoImportProFormaExample
     {
         public static void Main()
         {
@@ -1267,7 +1026,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -1277,12 +1035,12 @@ namespace Example
             try
             {
                 // Importa righe da una o più fatture proforma in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportProformaPost(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+                Documento result = apiInstance.DocumentoImportProForma(companyId, id, validationOverride, idempotencyKey, documentoImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportProformaPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportProForma: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1291,21 +1049,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo variant
+#### Using the DocumentoImportProFormaWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da una o più fatture proforma in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documentoImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportProFormaWithHttpInfo(companyId, id, validationOverride, idempotencyKey, documentoImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportProformaPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportProFormaWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1315,7 +1073,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1350,9 +1107,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidimportresopost"></a>
-# **ApiVversionCompanyIdDocumentoIdImportResoPost**
-> Documento ApiVversionCompanyIdDocumentoIdImportResoPost (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, ResoImportData? resoImportData = null)
+<a id="documentoimportresi"></a>
+# **DocumentoImportResi**
+> Documento DocumentoImportResi (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, ResoImportData? resoImportData = null)
 
 Importa righe da uno o più resi in un documento esistente.
 
@@ -1366,7 +1123,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdImportResoPostExample
+    public class DocumentoImportResiExample
     {
         public static void Main()
         {
@@ -1380,7 +1137,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID del documento di destinazione.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
@@ -1390,12 +1146,12 @@ namespace Example
             try
             {
                 // Importa righe da uno o più resi in un documento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdImportResoPost(version, companyId, id, validationOverride, idempotencyKey, resoImportData);
+                Documento result = apiInstance.DocumentoImportResi(companyId, id, validationOverride, idempotencyKey, resoImportData);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportResoPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoImportResi: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1404,21 +1160,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo variant
+#### Using the DocumentoImportResiWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Importa righe da uno o più resi in un documento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, resoImportData);
+    ApiResponse<Documento> response = apiInstance.DocumentoImportResiWithHttpInfo(companyId, id, validationOverride, idempotencyKey, resoImportData);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdImportResoPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoImportResiWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1428,7 +1184,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID del documento di destinazione. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1463,11 +1218,13 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoidput"></a>
-# **ApiVversionCompanyIdDocumentoIdPut**
-> Documento ApiVversionCompanyIdDocumentoIdPut (string version, string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, Documento? documento = null)
+<a id="documentolist"></a>
+# **DocumentoList**
+> List&lt;Documento&gt; DocumentoList (string companyId, int? skip = null, int? take = null, bool? skipTotalCount = null, string? filter = null, string? order = null, List<string>? expand = null)
 
-Aggiorna un elemento esistente.
+Restituisce una lista di elementi.
+
+ La risposta include due header con informazioni sui risultati.  `X-Read-TotalCount` indica il numero di elementi che soddisfano il filtro impostato nella query;  `X-Read-Count` indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri `Take` e `Skip` sono stati usati nelle opzioni di query.
 
 ### Example
 ```csharp
@@ -1479,7 +1236,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoIdPutExample
+    public class DocumentoListExample
     {
         public static void Main()
         {
@@ -1493,22 +1250,23 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var id = 56;  // int | ID univoco dell'elemento da aggiornare.
-            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
-            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
-            var documento = new Documento?(); // Documento? | Istanza dell'elemento da salvare. (optional) 
+            var skip = 100;  // int? | Numero di elementi da escludere dall'inizio del risultato. Combinato con `Take`, è utile per la paginazione. (optional) 
+            var take = 25;  // int? | Numero di elementi da includere nel risultato. Combinato con `Skip`, è utile per la paginazione. (optional) 
+            var skipTotalCount = true;  // bool? | Indica se l'header `X-Read-TotalCount` debba essere escluso dalla risposta. Impostare a `true` per prestazioni migliori a scapito dell'accuratezza. Il valore predefinito è `false`. (optional) 
+            var filter = field1 $eq hello $or, field2 $gt 10;  // string? | Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: `$eq` (uguale), `$ne` (diverso), `$gt` (maggiore di), `$lt` (minore di), `$lte` (minore o uguale), `$gte` (maggiore o uguale), `$ct` (contiene), `$nct` (non contiene), `$sw` (inizia con), `$ew` (finisce con). Più espressioni possono essere concatenate con un connettore logico `$and` o `$or` (`$and` può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (`[]`). Nell'esempio vengono inclusi tutti gli elementi con `field1=\"hello\"` oppure `field2>10`. (optional) 
+            var order = -field1,field2;  // string? | Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell'esempio i risultati sono ordinati prima per `field1` (discendente), poi per `field2`. (optional) 
+            var expand = new List<string>?(); // List<string>? | Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un'unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge `expand=Rows` alla chiamata. (optional) 
 
             try
             {
-                // Aggiorna un elemento esistente.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoIdPut(version, companyId, id, validationOverride, idempotencyKey, documento);
+                // Restituisce una lista di elementi.
+                List<Documento> result = apiInstance.DocumentoList(companyId, skip, take, skipTotalCount, filter, order, expand);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdPut: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoList: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1517,21 +1275,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoIdPutWithHttpInfo variant
+#### Using the DocumentoListWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
-    // Aggiorna un elemento esistente.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoIdPutWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, documento);
+    // Restituisce una lista di elementi.
+    ApiResponse<List<Documento>> response = apiInstance.DocumentoListWithHttpInfo(companyId, skip, take, skipTotalCount, filter, order, expand);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoIdPutWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoListWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1541,16 +1299,17 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
-| **id** | **int** | ID univoco dell&#39;elemento da aggiornare. |  |
-| **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
-| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
-| **documento** | [**Documento?**](Documento?.md) | Istanza dell&#39;elemento da salvare. | [optional]  |
+| **skip** | **int?** | Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. | [optional]  |
+| **take** | **int?** | Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. | [optional]  |
+| **skipTotalCount** | **bool?** | Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. | [optional]  |
+| **filter** | **string?** | Condizioni di ricerca. Elenco di espressioni separate da virgola. Ogni espressione è composta da nome del campo, operatore di confronto, valore ed eventualmente un connettore logico. Operatori validi: &#x60;$eq&#x60; (uguale), &#x60;$ne&#x60; (diverso), &#x60;$gt&#x60; (maggiore di), &#x60;$lt&#x60; (minore di), &#x60;$lte&#x60; (minore o uguale), &#x60;$gte&#x60; (maggiore o uguale), &#x60;$ct&#x60; (contiene), &#x60;$nct&#x60; (non contiene), &#x60;$sw&#x60; (inizia con), &#x60;$ew&#x60; (finisce con). Più espressioni possono essere concatenate con un connettore logico &#x60;$and&#x60; o &#x60;$or&#x60; (&#x60;$and&#x60; può essere omesso). Le query annidate si esprimono racchiudendo le sotto-query tra parentesi quadre (&#x60;[]&#x60;). Nell&#39;esempio vengono inclusi tutti gli elementi con &#x60;field1&#x3D;\&quot;hello\&quot;&#x60; oppure &#x60;field2&gt;10&#x60;. | [optional]  |
+| **order** | **string?** | Opzioni di ordinamento. Un segno meno (trattino) prima del nome indica ordinamento discendente. Nell&#39;esempio i risultati sono ordinati prima per &#x60;field1&#x60; (discendente), poi per &#x60;field2&#x60;. | [optional]  |
+| **expand** | [**List&lt;string&gt;?**](string.md) | Elenco separato da virgole di oggetti da espandere. Permette di recuperare gli oggetti correlati in un&#39;unica chiamata. Ad esempio, per includere i beni e servizi associati a ciascun documento si aggiunge &#x60;expand&#x3D;Rows&#x60; alla chiamata. | [optional]  |
 
 ### Return type
 
-[**Documento**](Documento.md)
+[**List&lt;Documento&gt;**](Documento.md)
 
 ### Authorization
 
@@ -1558,27 +1317,24 @@ catch (ApiException e)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json, text/json, application/*+json
+ - **Content-Type**: Not defined
  - **Accept**: application/json, application/problem+json
 
 
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di &#x60;ConcurrencyToken&#x60;. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **422** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
-| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **200** | Successo. Restituisce la lista degli elementi corrispondenti ai criteri di ricerca. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
 | **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
 | **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentonewget"></a>
-# **ApiVversionCompanyIdDocumentoNewGet**
-> Documento ApiVversionCompanyIdDocumentoNewGet (string version, string companyId)
+<a id="documentonewinstance"></a>
+# **DocumentoNewInstance**
+> Documento DocumentoNewInstance (string companyId)
 
 Restituisce una nuova istanza di un documento del tipo specificato.
 
@@ -1594,7 +1350,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoNewGetExample
+    public class DocumentoNewInstanceExample
     {
         public static void Main()
         {
@@ -1608,18 +1364,17 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
 
             try
             {
                 // Restituisce una nuova istanza di un documento del tipo specificato.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoNewGet(version, companyId);
+                Documento result = apiInstance.DocumentoNewInstance(companyId);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoNewGet: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoNewInstance: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1628,21 +1383,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoNewGetWithHttpInfo variant
+#### Using the DocumentoNewInstanceWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce una nuova istanza di un documento del tipo specificato.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoNewGetWithHttpInfo(version, companyId);
+    ApiResponse<Documento> response = apiInstance.DocumentoNewInstanceWithHttpInfo(companyId);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoNewGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoNewInstanceWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1652,7 +1407,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 
 ### Return type
@@ -1680,11 +1434,11 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentoperiodicinvoicingpost"></a>
-# **ApiVversionCompanyIdDocumentoPeriodicinvoicingPost**
-> List&lt;Documento&gt; ApiVversionCompanyIdDocumentoPeriodicinvoicingPost (string version, string companyId, int? id = null, bool? validationOverride = null, string? idempotencyKey = null, PeriodicInvoicingData? periodicInvoicingData = null)
+<a id="documentonewinstancefromtemplate"></a>
+# **DocumentoNewInstanceFromTemplate**
+> Documento DocumentoNewInstanceFromTemplate (int documentoId, string companyId, string? idempotencyKey = null)
 
-Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
+Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
 
 ### Example
 ```csharp
@@ -1696,7 +1450,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoPeriodicinvoicingPostExample
+    public class DocumentoNewInstanceFromTemplateExample
     {
         public static void Main()
         {
@@ -1710,22 +1464,19 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
+            var documentoId = 56;  // int | ID univoco del documento.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
-            var id = 56;  // int? | Non utilizzato. (optional) 
-            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
             var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
-            var periodicInvoicingData = new PeriodicInvoicingData?(); // PeriodicInvoicingData? | Criteri e opzioni di fatturazione periodica. (optional) 
 
             try
             {
-                // Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
-                List<Documento> result = apiInstance.ApiVversionCompanyIdDocumentoPeriodicinvoicingPost(version, companyId, id, validationOverride, idempotencyKey, periodicInvoicingData);
+                // Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
+                Documento result = apiInstance.DocumentoNewInstanceFromTemplate(documentoId, companyId, idempotencyKey);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoPeriodicinvoicingPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoNewInstanceFromTemplate: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1734,21 +1485,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo variant
+#### Using the DocumentoNewInstanceFromTemplateWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
-    // Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
-    ApiResponse<List<Documento>> response = apiInstance.ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo(version, companyId, id, validationOverride, idempotencyKey, periodicInvoicingData);
+    // Replica un documento. Crea una copia con la data odierna e, se è un documento di vendita, un nuovo numero. Alcuni campi vengono reimpostati ai valori predefiniti (stato del documento, stato SDI, stato del pagamento, ecc.).
+    ApiResponse<Documento> response = apiInstance.DocumentoNewInstanceFromTemplateWithHttpInfo(documentoId, companyId, idempotencyKey);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoPeriodicinvoicingPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoNewInstanceFromTemplateWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1758,7 +1509,113 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
+| **documentoId** | **int** | ID univoco del documento. |  |
+| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
+
+### Return type
+
+[**Documento**](Documento.md)
+
+### Authorization
+
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: text/plain, application/json, text/json, application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
+| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
+| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+<a id="documentoperiodicinvoicing"></a>
+# **DocumentoPeriodicInvoicing**
+> List&lt;Documento&gt; DocumentoPeriodicInvoicing (string companyId, int? id = null, bool? validationOverride = null, string? idempotencyKey = null, PeriodicInvoicingData? periodicInvoicingData = null)
+
+Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
+
+### Example
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Amica.Sdk.Api;
+using Amica.Sdk.Client;
+using Amica.Sdk.Model;
+
+namespace Example
+{
+    public class DocumentoPeriodicInvoicingExample
+    {
+        public static void Main()
+        {
+            Configuration config = new Configuration();
+            config.BasePath = "http://localhost";
+            // Configure Bearer token for authorization: bearer
+            config.AccessToken = "YOUR_BEARER_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+
+            var apiInstance = new DocumentoApi(config);
+            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var id = 56;  // int? | Non utilizzato. (optional) 
+            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
+            var periodicInvoicingData = new PeriodicInvoicingData?(); // PeriodicInvoicingData? | Criteri e opzioni di fatturazione periodica. (optional) 
+
+            try
+            {
+                // Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
+                List<Documento> result = apiInstance.DocumentoPeriodicInvoicing(companyId, id, validationOverride, idempotencyKey, periodicInvoicingData);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException  e)
+            {
+                Debug.Print("Exception when calling DocumentoApi.DocumentoPeriodicInvoicing: " + e.Message);
+                Debug.Print("Status Code: " + e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+        }
+    }
+}
+```
+
+#### Using the DocumentoPeriodicInvoicingWithHttpInfo variant
+This returns an ApiResponse object which contains the response data, status code and headers.
+
+```csharp
+try
+{
+    // Genera fatture per tutti i contatti che corrispondono ai criteri di fatturazione periodica.
+    ApiResponse<List<Documento>> response = apiInstance.DocumentoPeriodicInvoicingWithHttpInfo(companyId, id, validationOverride, idempotencyKey, periodicInvoicingData);
+    Debug.Write("Status Code: " + response.StatusCode);
+    Debug.Write("Response Headers: " + response.Headers);
+    Debug.Write("Response Body: " + response.Data);
+}
+catch (ApiException e)
+{
+    Debug.Print("Exception when calling DocumentoApi.DocumentoPeriodicInvoicingWithHttpInfo: " + e.Message);
+    Debug.Print("Status Code: " + e.ErrorCode);
+    Debug.Print(e.StackTrace);
+}
+```
+
+### Parameters
+
+| Name | Type | Description | Notes |
+|------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int?** | Non utilizzato. | [optional]  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
@@ -1793,9 +1650,9 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentopost"></a>
-# **ApiVversionCompanyIdDocumentoPost**
-> Documento ApiVversionCompanyIdDocumentoPost (string version, string companyId, bool? validationOverride = null, string? idempotencyKey = null, Documento? documento = null)
+<a id="documentopost"></a>
+# **DocumentoPost**
+> Documento DocumentoPost (string companyId, bool? validationOverride = null, string? idempotencyKey = null, Documento? documento = null)
 
 Salva un nuovo elemento.
 
@@ -1809,7 +1666,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoPostExample
+    public class DocumentoPostExample
     {
         public static void Main()
         {
@@ -1823,7 +1680,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
             var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
@@ -1832,12 +1688,12 @@ namespace Example
             try
             {
                 // Salva un nuovo elemento.
-                Documento result = apiInstance.ApiVversionCompanyIdDocumentoPost(version, companyId, validationOverride, idempotencyKey, documento);
+                Documento result = apiInstance.DocumentoPost(companyId, validationOverride, idempotencyKey, documento);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoPost: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoPost: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1846,21 +1702,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoPostWithHttpInfo variant
+#### Using the DocumentoPostWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Salva un nuovo elemento.
-    ApiResponse<Documento> response = apiInstance.ApiVversionCompanyIdDocumentoPostWithHttpInfo(version, companyId, validationOverride, idempotencyKey, documento);
+    ApiResponse<Documento> response = apiInstance.DocumentoPostWithHttpInfo(companyId, validationOverride, idempotencyKey, documento);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoPostWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoPostWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1870,7 +1726,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
 | **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
@@ -1903,9 +1758,120 @@ catch (ApiException e)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-<a id="apivversioncompanyiddocumentototaliget"></a>
-# **ApiVversionCompanyIdDocumentoTotaliGet**
-> List&lt;DocumentoTotali&gt; ApiVversionCompanyIdDocumentoTotaliGet (string version, string companyId, string? filter = null, string? raggruppa = null)
+<a id="documentoput"></a>
+# **DocumentoPut**
+> Documento DocumentoPut (string companyId, int id, bool? validationOverride = null, string? idempotencyKey = null, Documento? documento = null)
+
+Aggiorna un elemento esistente.
+
+### Example
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Amica.Sdk.Api;
+using Amica.Sdk.Client;
+using Amica.Sdk.Model;
+
+namespace Example
+{
+    public class DocumentoPutExample
+    {
+        public static void Main()
+        {
+            Configuration config = new Configuration();
+            config.BasePath = "http://localhost";
+            // Configure Bearer token for authorization: bearer
+            config.AccessToken = "YOUR_BEARER_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+
+            var apiInstance = new DocumentoApi(config);
+            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var id = 56;  // int | ID univoco dell'elemento da aggiornare.
+            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
+            var documento = new Documento?(); // Documento? | Istanza dell'elemento da salvare. (optional) 
+
+            try
+            {
+                // Aggiorna un elemento esistente.
+                Documento result = apiInstance.DocumentoPut(companyId, id, validationOverride, idempotencyKey, documento);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException  e)
+            {
+                Debug.Print("Exception when calling DocumentoApi.DocumentoPut: " + e.Message);
+                Debug.Print("Status Code: " + e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+        }
+    }
+}
+```
+
+#### Using the DocumentoPutWithHttpInfo variant
+This returns an ApiResponse object which contains the response data, status code and headers.
+
+```csharp
+try
+{
+    // Aggiorna un elemento esistente.
+    ApiResponse<Documento> response = apiInstance.DocumentoPutWithHttpInfo(companyId, id, validationOverride, idempotencyKey, documento);
+    Debug.Write("Status Code: " + response.StatusCode);
+    Debug.Write("Response Headers: " + response.Headers);
+    Debug.Write("Response Body: " + response.Data);
+}
+catch (ApiException e)
+{
+    Debug.Print("Exception when calling DocumentoApi.DocumentoPutWithHttpInfo: " + e.Message);
+    Debug.Print("Status Code: " + e.ErrorCode);
+    Debug.Print(e.StackTrace);
+}
+```
+
+### Parameters
+
+| Name | Type | Description | Notes |
+|------|------|-------------|-------|
+| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **id** | **int** | ID univoco dell&#39;elemento da aggiornare. |  |
+| **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
+| **documento** | [**Documento?**](Documento?.md) | Istanza dell&#39;elemento da salvare. | [optional]  |
+
+### Return type
+
+[**Documento**](Documento.md)
+
+### Authorization
+
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json, text/json, application/*+json
+ - **Accept**: application/json, application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successo. Restituisce l&#39;elemento aggiornato con un nuovo valore di &#x60;ConcurrencyToken&#x60;. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **422** | Conflitto. Restituisce il motivo del conflitto. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore (di solito un problema di validazione). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
+| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+<a id="documentototali"></a>
+# **DocumentoTotali**
+> List&lt;DocumentoTotali&gt; DocumentoTotali (string companyId, string? filter = null, string? raggruppa = null)
 
 Restituisce i totali dei documenti che soddisfano il filtro, eventualmente raggruppati per mese, anno o anagrafica. I totali sono calcolati dal server: per conoscere il fatturato di un periodo non serve scaricare i documenti.
 
@@ -1921,7 +1887,7 @@ using Amica.Sdk.Model;
 
 namespace Example
 {
-    public class ApiVversionCompanyIdDocumentoTotaliGetExample
+    public class DocumentoTotaliExample
     {
         public static void Main()
         {
@@ -1935,7 +1901,6 @@ namespace Example
             config.AccessToken = "YOUR_ACCESS_TOKEN";
 
             var apiInstance = new DocumentoApi(config);
-            var version = "version_example";  // string | Versione API.
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var filter = ClasseDocumento $eq 1, Data $gte 2026-01-01, Data $lte 2026-09-30;  // string? | Condizioni di ricerca che selezionano i documenti da sommare, con la stessa sintassi del parametro `Filter` dell'elenco dei documenti. Senza filtro si sommano tutti i documenti dell'azienda, compresi ordini e preventivi: per il fatturato, filtrare per classe e tipo di documento. (optional) 
             var raggruppa = Mese;  // string? | Come raggruppare i totali: `Nessuno` (un solo gruppo, predefinito), `Mese`, `Anno` o `Anagrafica`. (optional) 
@@ -1943,12 +1908,12 @@ namespace Example
             try
             {
                 // Restituisce i totali dei documenti che soddisfano il filtro, eventualmente raggruppati per mese, anno o anagrafica. I totali sono calcolati dal server: per conoscere il fatturato di un periodo non serve scaricare i documenti.
-                List<DocumentoTotali> result = apiInstance.ApiVversionCompanyIdDocumentoTotaliGet(version, companyId, filter, raggruppa);
+                List<DocumentoTotali> result = apiInstance.DocumentoTotali(companyId, filter, raggruppa);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
             {
-                Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoTotaliGet: " + e.Message);
+                Debug.Print("Exception when calling DocumentoApi.DocumentoTotali: " + e.Message);
                 Debug.Print("Status Code: " + e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -1957,21 +1922,21 @@ namespace Example
 }
 ```
 
-#### Using the ApiVversionCompanyIdDocumentoTotaliGetWithHttpInfo variant
+#### Using the DocumentoTotaliWithHttpInfo variant
 This returns an ApiResponse object which contains the response data, status code and headers.
 
 ```csharp
 try
 {
     // Restituisce i totali dei documenti che soddisfano il filtro, eventualmente raggruppati per mese, anno o anagrafica. I totali sono calcolati dal server: per conoscere il fatturato di un periodo non serve scaricare i documenti.
-    ApiResponse<List<DocumentoTotali>> response = apiInstance.ApiVversionCompanyIdDocumentoTotaliGetWithHttpInfo(version, companyId, filter, raggruppa);
+    ApiResponse<List<DocumentoTotali>> response = apiInstance.DocumentoTotaliWithHttpInfo(companyId, filter, raggruppa);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
 }
 catch (ApiException e)
 {
-    Debug.Print("Exception when calling DocumentoApi.ApiVversionCompanyIdDocumentoTotaliGetWithHttpInfo: " + e.Message);
+    Debug.Print("Exception when calling DocumentoApi.DocumentoTotaliWithHttpInfo: " + e.Message);
     Debug.Print("Status Code: " + e.ErrorCode);
     Debug.Print(e.StackTrace);
 }
@@ -1981,7 +1946,6 @@ catch (ApiException e)
 
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
-| **version** | **string** | Versione API. |  |
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **filter** | **string?** | Condizioni di ricerca che selezionano i documenti da sommare, con la stessa sintassi del parametro &#x60;Filter&#x60; dell&#39;elenco dei documenti. Senza filtro si sommano tutti i documenti dell&#39;azienda, compresi ordini e preventivi: per il fatturato, filtrare per classe e tipo di documento. | [optional]  |
 | **raggruppa** | **string?** | Come raggruppare i totali: &#x60;Nessuno&#x60; (un solo gruppo, predefinito), &#x60;Mese&#x60;, &#x60;Anno&#x60; o &#x60;Anagrafica&#x60;. | [optional]  |
