@@ -4,17 +4,127 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |--------|--------------|-------------|
+| [**MovimentoMerceComputeRiga**](MovimentoMerceApi.md#movimentomercecomputeriga) | **POST** /api/v3/{companyId}/MovimentoMerce/riga/compute | Completa una riga di movimento dopo una modifica e ne calcola prezzi e importi, come il client Windows. |
 | [**MovimentoMerceDelete**](MovimentoMerceApi.md#movimentomercedelete) | **DELETE** /api/v3/{companyId}/MovimentoMerce/{id} | Elimina un elemento. |
 | [**MovimentoMerceDistinct**](MovimentoMerceApi.md#movimentomercedistinct) | **GET** /api/v3/{companyId}/MovimentoMerce/distinct | Restituisce una lista di elementi distinti. |
 | [**MovimentoMerceGet**](MovimentoMerceApi.md#movimentomerceget) | **GET** /api/v3/{companyId}/MovimentoMerce/{id} | Restituisce un elemento. |
 | [**MovimentoMerceList**](MovimentoMerceApi.md#movimentomercelist) | **GET** /api/v3/{companyId}/MovimentoMerce | Restituisce una lista di elementi. |
 | [**MovimentoMerceNewInstance**](MovimentoMerceApi.md#movimentomercenewinstance) | **GET** /api/v3/{companyId}/MovimentoMerce/new | Restituisce una nuova istanza di un oggetto. Dove necessario, i valori delle proprietà saranno coerenti con lo stato e la logica dell&#39;applicazione (ad es., una nuova istanza di &#x60;Documento&#x60; avrà il &#x60;Numero&#x60; appropriato, basato sui documenti preesistenti di tipo compatibile). |
+| [**MovimentoMerceNewInstanceRiga**](MovimentoMerceApi.md#movimentomercenewinstanceriga) | **GET** /api/v3/{companyId}/MovimentoMerce/riga/new | Restituisce una nuova riga di movimento, con magazzino e listino predefiniti delle preferenze. |
 | [**MovimentoMercePost**](MovimentoMerceApi.md#movimentomercepost) | **POST** /api/v3/{companyId}/MovimentoMerce | Salva un nuovo elemento. |
 | [**MovimentoMercePut**](MovimentoMerceApi.md#movimentomerceput) | **PUT** /api/v3/{companyId}/MovimentoMerce/{id} | Aggiorna un elemento esistente. |
 
+<a id="movimentomercecomputeriga"></a>
+# **MovimentoMerceComputeRiga**
+> MovimentoMerceRigaComputeResult MovimentoMerceComputeRiga (string companyId, string? idempotencyKey = null, MovimentoMerceRigaComputeData? movimentoMerceRigaComputeData = null)
+
+Completa una riga di movimento dopo una modifica e ne calcola prezzi e importi, come il client Windows.
+
+Cosa si ricalcola dipende da `modificato`:              - `Articolo`: magazzino (se manca e ce n'è uno solo), listino e causale IVA dalla scheda cliente o, con una   causale di magazzino di carico, fornitore dell'anagrafica; poi la causale IVA dell'articolo o l'unica esistente,   la taglia per gli articoli a taglie e colori e il prezzo da listino. Senza `causaleMagazzinoId`   l'anagrafica non si usa. - `Listino`: il prezzo da listino, anche se il prezzo era stato inserito a mano. Dipende dal calcolo dei prezzi   del listino (a mano, o costo ultimo o medio dell'articolo più il ricarico), al netto dei quattro sconti; se il   listino è a IVA inclusa si scorpora. Se il listino non ha l'articolo i prezzi vanno a zero. - `PrezzoNetto` o `PrezzoIvato`: l'altro prezzo. - `CausaleIva` (o nessun valore): il prezzo che con `ivaEsclusa` non si scrive, con la nuova aliquota. - `Quantità`: solo gli importi.              Gli importi sono sempre quantità per prezzo. I prezzi non si arrotondano. Non si salva niente, e il movimento può non esistere ancora. La riga non si valida: magazzino e articolo possono essere ancora 0.
+
+### Example
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Amica.Sdk.Api;
+using Amica.Sdk.Client;
+using Amica.Sdk.Model;
+
+namespace Example
+{
+    public class MovimentoMerceComputeRigaExample
+    {
+        public static void Main()
+        {
+            Configuration config = new Configuration();
+            config.BasePath = "http://localhost";
+            // Configure Bearer token for authorization: bearer
+            config.AccessToken = "YOUR_BEARER_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+
+            var apiInstance = new MovimentoMerceApi(config);
+            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var idempotencyKey = "idempotencyKey_example";  // string? | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l'operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l'header `Idempotent-Replayed: true`. (optional) 
+            var movimentoMerceRigaComputeData = new MovimentoMerceRigaComputeData?(); // MovimentoMerceRigaComputeData? | La riga, i dati della testata e il campo modificato. (optional) 
+
+            try
+            {
+                // Completa una riga di movimento dopo una modifica e ne calcola prezzi e importi, come il client Windows.
+                MovimentoMerceRigaComputeResult result = apiInstance.MovimentoMerceComputeRiga(companyId, idempotencyKey, movimentoMerceRigaComputeData);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException  e)
+            {
+                Debug.Print("Exception when calling MovimentoMerceApi.MovimentoMerceComputeRiga: " + e.Message);
+                Debug.Print("Status Code: " + e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+        }
+    }
+}
+```
+
+#### Using the MovimentoMerceComputeRigaWithHttpInfo variant
+This returns an ApiResponse object which contains the response data, status code and headers.
+
+```csharp
+try
+{
+    // Completa una riga di movimento dopo una modifica e ne calcola prezzi e importi, come il client Windows.
+    ApiResponse<MovimentoMerceRigaComputeResult> response = apiInstance.MovimentoMerceComputeRigaWithHttpInfo(companyId, idempotencyKey, movimentoMerceRigaComputeData);
+    Debug.Write("Status Code: " + response.StatusCode);
+    Debug.Write("Response Headers: " + response.Headers);
+    Debug.Write("Response Body: " + response.Data);
+}
+catch (ApiException e)
+{
+    Debug.Print("Exception when calling MovimentoMerceApi.MovimentoMerceComputeRigaWithHttpInfo: " + e.Message);
+    Debug.Print("Status Code: " + e.ErrorCode);
+    Debug.Print(e.StackTrace);
+}
+```
+
+### Parameters
+
+| Name | Type | Description | Notes |
+|------|------|-------------|-------|
+| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **idempotencyKey** | **string?** | Chiave di idempotenza (opzionale). Inviando la stessa chiave su un retry si riottiene la risposta della prima richiesta senza rieseguire l&#39;operazione: rende sicuri i retry automatici. Usa un valore univoco per operazione logica (es. un UUID). La risposta replicata riporta l&#39;header &#x60;Idempotent-Replayed: true&#x60;. | [optional]  |
+| **movimentoMerceRigaComputeData** | [**MovimentoMerceRigaComputeData?**](MovimentoMerceRigaComputeData?.md) | La riga, i dati della testata e il campo modificato. | [optional]  |
+
+### Return type
+
+[**MovimentoMerceRigaComputeResult**](MovimentoMerceRigaComputeResult.md)
+
+### Authorization
+
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json, text/json, application/*+json
+ - **Accept**: application/json, application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successo. Restituisce la riga completata e gli importi. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **400** | Bad Request. Articolo, causale IVA o causale di magazzino inesistenti. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  * Idempotent-Replayed - Presente e pari a &#x60;true&#x60; quando la risposta è la replica di una richiesta precedente con la stessa Idempotency-Key. <br>  |
+| **409** | Conflitto: una richiesta con la stessa Idempotency-Key è ancora in elaborazione. |  -  |
+| **422** | La stessa Idempotency-Key è già stata usata per una richiesta con metodo, URL o corpo diversi. |  -  |
+| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
+| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 <a id="movimentomercedelete"></a>
 # **MovimentoMerceDelete**
-> MovimentoMerce MovimentoMerceDelete (string companyId, int id)
+> MovimentoMerce MovimentoMerceDelete (string companyId, int id, bool? validationOverride = null)
 
 Elimina un elemento.
 
@@ -44,11 +154,12 @@ namespace Example
             var apiInstance = new MovimentoMerceApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID dell'elemento da eliminare.
+            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
 
             try
             {
                 // Elimina un elemento.
-                MovimentoMerce result = apiInstance.MovimentoMerceDelete(companyId, id);
+                MovimentoMerce result = apiInstance.MovimentoMerceDelete(companyId, id, validationOverride);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -69,7 +180,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Elimina un elemento.
-    ApiResponse<MovimentoMerce> response = apiInstance.MovimentoMerceDeleteWithHttpInfo(companyId, id);
+    ApiResponse<MovimentoMerce> response = apiInstance.MovimentoMerceDeleteWithHttpInfo(companyId, id, validationOverride);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -88,6 +199,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID dell&#39;elemento da eliminare. |  |
+| **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
 
 ### Return type
 
@@ -108,7 +220,7 @@ catch (ApiException e)
 |-------------|-------------|------------------|
 | **200** | Successo. Restituisce l&#39;elemento eliminato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore (per esempio un documento già emesso, che si             cancella solo con &#x60;validationOverride&#x3D;true&#x60;). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
 | **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
 | **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
@@ -534,6 +646,107 @@ catch (ApiException e)
 |-------------|-------------|------------------|
 | **200** | OK |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **400** | Bad Request |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
+| **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
+| **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+<a id="movimentomercenewinstanceriga"></a>
+# **MovimentoMerceNewInstanceRiga**
+> MovimentoMerceRiga MovimentoMerceNewInstanceRiga (string companyId)
+
+Restituisce una nuova riga di movimento, con magazzino e listino predefiniti delle preferenze.
+
+Non serve un movimento salvato: `movimentoMerceId` è 0.
+
+### Example
+```csharp
+using System.Collections.Generic;
+using System.Diagnostics;
+using Amica.Sdk.Api;
+using Amica.Sdk.Client;
+using Amica.Sdk.Model;
+
+namespace Example
+{
+    public class MovimentoMerceNewInstanceRigaExample
+    {
+        public static void Main()
+        {
+            Configuration config = new Configuration();
+            config.BasePath = "http://localhost";
+            // Configure Bearer token for authorization: bearer
+            config.AccessToken = "YOUR_BEARER_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2ClientCredentials
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+            // Configure OAuth2 access token for authorization: oauth2
+            config.AccessToken = "YOUR_ACCESS_TOKEN";
+
+            var apiInstance = new MovimentoMerceApi(config);
+            var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+
+            try
+            {
+                // Restituisce una nuova riga di movimento, con magazzino e listino predefiniti delle preferenze.
+                MovimentoMerceRiga result = apiInstance.MovimentoMerceNewInstanceRiga(companyId);
+                Debug.WriteLine(result);
+            }
+            catch (ApiException  e)
+            {
+                Debug.Print("Exception when calling MovimentoMerceApi.MovimentoMerceNewInstanceRiga: " + e.Message);
+                Debug.Print("Status Code: " + e.ErrorCode);
+                Debug.Print(e.StackTrace);
+            }
+        }
+    }
+}
+```
+
+#### Using the MovimentoMerceNewInstanceRigaWithHttpInfo variant
+This returns an ApiResponse object which contains the response data, status code and headers.
+
+```csharp
+try
+{
+    // Restituisce una nuova riga di movimento, con magazzino e listino predefiniti delle preferenze.
+    ApiResponse<MovimentoMerceRiga> response = apiInstance.MovimentoMerceNewInstanceRigaWithHttpInfo(companyId);
+    Debug.Write("Status Code: " + response.StatusCode);
+    Debug.Write("Response Headers: " + response.Headers);
+    Debug.Write("Response Body: " + response.Data);
+}
+catch (ApiException e)
+{
+    Debug.Print("Exception when calling MovimentoMerceApi.MovimentoMerceNewInstanceRigaWithHttpInfo: " + e.Message);
+    Debug.Print("Status Code: " + e.ErrorCode);
+    Debug.Print(e.StackTrace);
+}
+```
+
+### Parameters
+
+| Name | Type | Description | Notes |
+|------|------|-------------|-------|
+| **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+
+### Return type
+
+[**MovimentoMerceRiga**](MovimentoMerceRiga.md)
+
+### Authorization
+
+[bearer](../README.md#bearer), [oauth2ClientCredentials](../README.md#oauth2ClientCredentials), [oauth2](../README.md#oauth2)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json, application/problem+json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successo. Restituisce la nuova riga. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
 | **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
 | **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |

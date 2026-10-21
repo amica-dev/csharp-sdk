@@ -14,6 +14,8 @@ docs/AreaGeografica.md
 docs/AreaGeograficaApi.md
 docs/Articolo.md
 docs/ArticoloApi.md
+docs/ArticoloColore.md
+docs/ArticoloColoreApi.md
 docs/ArticoloMediaFile.md
 docs/ArticoloMediaFileApi.md
 docs/Azienda.md
@@ -104,6 +106,8 @@ docs/ModelloContabileRiga.md
 docs/MovimentoMerce.md
 docs/MovimentoMerceApi.md
 docs/MovimentoMerceRiga.md
+docs/MovimentoMerceRigaComputeData.md
+docs/MovimentoMerceRigaComputeResult.md
 docs/NaturaIva.md
 docs/NaturaIvaApi.md
 docs/Nazione.md
@@ -152,6 +156,7 @@ src/Amica.Sdk.Test/Amica.Sdk.Test.csproj
 src/Amica.Sdk.Test/Api/AnagraficaApiTests.cs
 src/Amica.Sdk.Test/Api/AreaGeograficaApiTests.cs
 src/Amica.Sdk.Test/Api/ArticoloApiTests.cs
+src/Amica.Sdk.Test/Api/ArticoloColoreApiTests.cs
 src/Amica.Sdk.Test/Api/ArticoloMediaFileApiTests.cs
 src/Amica.Sdk.Test/Api/AziendaApiTests.cs
 src/Amica.Sdk.Test/Api/BeneServizioApiTests.cs
@@ -202,6 +207,7 @@ src/Amica.Sdk.Test/Model/AnagraficaNominativo2Tests.cs
 src/Amica.Sdk.Test/Model/AnagraficaSedeLegaleTests.cs
 src/Amica.Sdk.Test/Model/AnagraficaTests.cs
 src/Amica.Sdk.Test/Model/AreaGeograficaTests.cs
+src/Amica.Sdk.Test/Model/ArticoloColoreTests.cs
 src/Amica.Sdk.Test/Model/ArticoloMediaFileTests.cs
 src/Amica.Sdk.Test/Model/ArticoloTests.cs
 src/Amica.Sdk.Test/Model/AziendaTests.cs
@@ -263,6 +269,8 @@ src/Amica.Sdk.Test/Model/MarcaTests.cs
 src/Amica.Sdk.Test/Model/ModalitaPagamentoTests.cs
 src/Amica.Sdk.Test/Model/ModelloContabileRigaTests.cs
 src/Amica.Sdk.Test/Model/ModelloContabileTests.cs
+src/Amica.Sdk.Test/Model/MovimentoMerceRigaComputeDataTests.cs
+src/Amica.Sdk.Test/Model/MovimentoMerceRigaComputeResultTests.cs
 src/Amica.Sdk.Test/Model/MovimentoMerceRigaTests.cs
 src/Amica.Sdk.Test/Model/MovimentoMerceTests.cs
 src/Amica.Sdk.Test/Model/NaturaIvaTests.cs
@@ -296,6 +304,7 @@ src/Amica.Sdk/Amica.Sdk.csproj
 src/Amica.Sdk/Api/AnagraficaApi.cs
 src/Amica.Sdk/Api/AreaGeograficaApi.cs
 src/Amica.Sdk/Api/ArticoloApi.cs
+src/Amica.Sdk/Api/ArticoloColoreApi.cs
 src/Amica.Sdk/Api/ArticoloMediaFileApi.cs
 src/Amica.Sdk/Api/AziendaApi.cs
 src/Amica.Sdk/Api/BeneServizioApi.cs
@@ -367,6 +376,7 @@ src/Amica.Sdk/Model/AnagraficaNominativo2.cs
 src/Amica.Sdk/Model/AnagraficaSedeLegale.cs
 src/Amica.Sdk/Model/AreaGeografica.cs
 src/Amica.Sdk/Model/Articolo.cs
+src/Amica.Sdk/Model/ArticoloColore.cs
 src/Amica.Sdk/Model/ArticoloMediaFile.cs
 src/Amica.Sdk/Model/Azienda.cs
 src/Amica.Sdk/Model/Banca.cs
@@ -429,6 +439,8 @@ src/Amica.Sdk/Model/ModelloContabile.cs
 src/Amica.Sdk/Model/ModelloContabileRiga.cs
 src/Amica.Sdk/Model/MovimentoMerce.cs
 src/Amica.Sdk/Model/MovimentoMerceRiga.cs
+src/Amica.Sdk/Model/MovimentoMerceRigaComputeData.cs
+src/Amica.Sdk/Model/MovimentoMerceRigaComputeResult.cs
 src/Amica.Sdk/Model/NaturaIva.cs
 src/Amica.Sdk/Model/Nazione.cs
 src/Amica.Sdk/Model/OrdiniImportData.cs

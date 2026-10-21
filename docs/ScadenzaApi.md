@@ -7,14 +7,14 @@ All URIs are relative to *http://localhost*
 | [**ScadenzaDelete**](ScadenzaApi.md#scadenzadelete) | **DELETE** /api/v3/{companyId}/Scadenza/{id} | Elimina un elemento. |
 | [**ScadenzaDistinct**](ScadenzaApi.md#scadenzadistinct) | **GET** /api/v3/{companyId}/Scadenza/distinct | Restituisce una lista di elementi distinti. |
 | [**ScadenzaGet**](ScadenzaApi.md#scadenzaget) | **GET** /api/v3/{companyId}/Scadenza/{id} | Restituisce un elemento. |
-| [**ScadenzaList**](ScadenzaApi.md#scadenzalist) | **GET** /api/v3/{companyId}/Scadenza | Restituisce una lista di elementi. |
+| [**ScadenzaList**](ScadenzaApi.md#scadenzalist) | **GET** /api/v3/{companyId}/Scadenza | Restituisce una lista di scadenze, eventualmente solo aperte o solo saldate. |
 | [**ScadenzaNewInstance**](ScadenzaApi.md#scadenzanewinstance) | **GET** /api/v3/{companyId}/Scadenza/new | Restituisce una nuova istanza di una scadenza del tipo specificato. |
 | [**ScadenzaPost**](ScadenzaApi.md#scadenzapost) | **POST** /api/v3/{companyId}/Scadenza | Salva un nuovo elemento. |
 | [**ScadenzaPut**](ScadenzaApi.md#scadenzaput) | **PUT** /api/v3/{companyId}/Scadenza/{id} | Aggiorna un elemento esistente. |
 
 <a id="scadenzadelete"></a>
 # **ScadenzaDelete**
-> Scadenza ScadenzaDelete (string companyId, int id)
+> Scadenza ScadenzaDelete (string companyId, int id, bool? validationOverride = null)
 
 Elimina un elemento.
 
@@ -44,11 +44,12 @@ namespace Example
             var apiInstance = new ScadenzaApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
             var id = 56;  // int | ID dell'elemento da eliminare.
+            var validationOverride = true;  // bool? | Se applicare eventualmente l'override della validazione. (optional) 
 
             try
             {
                 // Elimina un elemento.
-                Scadenza result = apiInstance.ScadenzaDelete(companyId, id);
+                Scadenza result = apiInstance.ScadenzaDelete(companyId, id, validationOverride);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -69,7 +70,7 @@ This returns an ApiResponse object which contains the response data, status code
 try
 {
     // Elimina un elemento.
-    ApiResponse<Scadenza> response = apiInstance.ScadenzaDeleteWithHttpInfo(companyId, id);
+    ApiResponse<Scadenza> response = apiInstance.ScadenzaDeleteWithHttpInfo(companyId, id, validationOverride);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -88,6 +89,7 @@ catch (ApiException e)
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
 | **id** | **int** | ID dell&#39;elemento da eliminare. |  |
+| **validationOverride** | **bool?** | Se applicare eventualmente l&#39;override della validazione. | [optional]  |
 
 ### Return type
 
@@ -108,7 +110,7 @@ catch (ApiException e)
 |-------------|-------------|------------------|
 | **200** | Successo. Restituisce l&#39;elemento eliminato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **404** | Non trovato. L&#39;elemento non è stato trovato. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
-| **400** | Bad Request. Restituisce il motivo dell&#39;errore. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
+| **400** | Bad Request. Restituisce il motivo dell&#39;errore (per esempio un documento già emesso, che si             cancella solo con &#x60;validationOverride&#x3D;true&#x60;). |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  |
 | **429** | Troppe richieste: superato il limite di rate per il client. |  * RateLimit-Limit - Numero massimo di richieste consentite al client nella finestra corrente. <br>  * RateLimit-Remaining - Richieste ancora disponibili per il client nella finestra corrente. <br>  * RateLimit-Reset - Secondi al rinnovo dei permessi del client. <br>  * RateLimit-Policy - Policy di rate limiting applicata, nel formato &#x60;&lt;limite&gt;;w&#x3D;&lt;finestra in secondi&gt;&#x60;. <br>  * Retry-After - Secondi da attendere prima di inviare una nuova richiesta. <br>  |
 | **401** | Non autenticato: access token mancante, non valido o scaduto. Ottieni un nuovo access token e ripeti la richiesta. La risposta non ha corpo. |  * WWW-Authenticate - Schema di autenticazione richiesto (&#x60;Bearer&#x60;) ed eventuale motivo del rifiuto del token. <br>  |
 | **403** | Accesso negato. Le cause possibili:  - il token non possiede lo scope richiesto dall&#39;operazione (risposta senza corpo); - &#x60;code: cloud_not_active&#x60;: l&#39;account lavora con una connessione locale e la Cloud API non espone i suoi dati; - &#x60;code: company_license_not_active&#x60;: la licenza dell&#39;azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili. |  -  |
@@ -328,11 +330,11 @@ catch (ApiException e)
 
 <a id="scadenzalist"></a>
 # **ScadenzaList**
-> List&lt;Scadenza&gt; ScadenzaList (string companyId, int? skip = null, int? take = null, bool? skipTotalCount = null, string? filter = null, string? order = null, List<string>? expand = null)
+> List&lt;Scadenza&gt; ScadenzaList (string companyId, string? stato = null, int? skip = null, int? take = null, bool? skipTotalCount = null, string? filter = null, string? order = null, List<string>? expand = null)
 
-Restituisce una lista di elementi.
+Restituisce una lista di scadenze, eventualmente solo aperte o solo saldate.
 
- La risposta include due header con informazioni sui risultati.  `X-Read-TotalCount` indica il numero di elementi che soddisfano il filtro impostato nella query;  `X-Read-Count` indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri `Take` e `Skip` sono stati usati nelle opzioni di query.
+ La risposta include due header con informazioni sui risultati.  `X-Read-TotalCount` indica il numero di elementi che soddisfano il filtro e lo stato impostati nella query;  `X-Read-Count` indica il numero di elementi effettivamente contenuti nella risposta.  I due header possono riportare valori diversi quando i parametri `Take` e `Skip` sono stati usati nelle opzioni di query.
 
 ### Example
 ```csharp
@@ -359,6 +361,7 @@ namespace Example
 
             var apiInstance = new ScadenzaApi(config);
             var companyId = "companyId_example";  // string | ID univoco dell'azienda.
+            var stato = Aperta;  // string? | Stato di pagamento: `Aperta` (con un importo ancora da pagare, comprese le parzialmente pagate e quelle pagate in eccesso) o `Saldata`. Senza stato si restituiscono tutte le scadenze. Una scadenza è saldata se l'importo pagato, manualmente o dalla contabilità, coincide con l'importo al centesimo; le scadenze a importo zero non sono né aperte né saldate. (optional) 
             var skip = 100;  // int? | Numero di elementi da escludere dall'inizio del risultato. Combinato con `Take`, è utile per la paginazione. (optional) 
             var take = 25;  // int? | Numero di elementi da includere nel risultato. Combinato con `Skip`, è utile per la paginazione. (optional) 
             var skipTotalCount = true;  // bool? | Indica se l'header `X-Read-TotalCount` debba essere escluso dalla risposta. Impostare a `true` per prestazioni migliori a scapito dell'accuratezza. Il valore predefinito è `false`. (optional) 
@@ -368,8 +371,8 @@ namespace Example
 
             try
             {
-                // Restituisce una lista di elementi.
-                List<Scadenza> result = apiInstance.ScadenzaList(companyId, skip, take, skipTotalCount, filter, order, expand);
+                // Restituisce una lista di scadenze, eventualmente solo aperte o solo saldate.
+                List<Scadenza> result = apiInstance.ScadenzaList(companyId, stato, skip, take, skipTotalCount, filter, order, expand);
                 Debug.WriteLine(result);
             }
             catch (ApiException  e)
@@ -389,8 +392,8 @@ This returns an ApiResponse object which contains the response data, status code
 ```csharp
 try
 {
-    // Restituisce una lista di elementi.
-    ApiResponse<List<Scadenza>> response = apiInstance.ScadenzaListWithHttpInfo(companyId, skip, take, skipTotalCount, filter, order, expand);
+    // Restituisce una lista di scadenze, eventualmente solo aperte o solo saldate.
+    ApiResponse<List<Scadenza>> response = apiInstance.ScadenzaListWithHttpInfo(companyId, stato, skip, take, skipTotalCount, filter, order, expand);
     Debug.Write("Status Code: " + response.StatusCode);
     Debug.Write("Response Headers: " + response.Headers);
     Debug.Write("Response Body: " + response.Data);
@@ -408,6 +411,7 @@ catch (ApiException e)
 | Name | Type | Description | Notes |
 |------|------|-------------|-------|
 | **companyId** | **string** | ID univoco dell&#39;azienda. |  |
+| **stato** | **string?** | Stato di pagamento: &#x60;Aperta&#x60; (con un importo ancora da pagare, comprese le parzialmente pagate e quelle pagate in eccesso) o &#x60;Saldata&#x60;. Senza stato si restituiscono tutte le scadenze. Una scadenza è saldata se l&#39;importo pagato, manualmente o dalla contabilità, coincide con l&#39;importo al centesimo; le scadenze a importo zero non sono né aperte né saldate. | [optional]  |
 | **skip** | **int?** | Numero di elementi da escludere dall&#39;inizio del risultato. Combinato con &#x60;Take&#x60;, è utile per la paginazione. | [optional]  |
 | **take** | **int?** | Numero di elementi da includere nel risultato. Combinato con &#x60;Skip&#x60;, è utile per la paginazione. | [optional]  |
 | **skipTotalCount** | **bool?** | Indica se l&#39;header &#x60;X-Read-TotalCount&#x60; debba essere escluso dalla risposta. Impostare a &#x60;true&#x60; per prestazioni migliori a scapito dell&#39;accuratezza. Il valore predefinito è &#x60;false&#x60;. | [optional]  |

@@ -3,7 +3,7 @@
  *
  * L'Amica Cloud API fornisce accesso programmatico a tutti i dati aziendali gestiti da [Amica 20](https://gestionaleamica.com). Supporta il ciclo completo di documenti, fatture, magazzino, contabilità e anagrafiche. Per guide e documentazione completa, visitare [amica.dev](https://amica.dev/).  ## Autenticazione  Tutte le richieste API richiedono un token OAuth 2.0 Bearer valido, da includere nell'header `Authorization`:  ``` Authorization: Bearer <token> ```  ### Registra la tua app  Per integrare l'Amica Cloud API registra la tua applicazione sull'[**App Store di Amica**](https://apps.amica20.it). Al termine della registrazione ottieni una coppia di credenziali OAuth 2.0 — `client_id` e `client_secret` (il secret è mostrato **una sola volta**) — e scegli gli **scope** e il **flusso di autenticazione** desiderati.  ### Scegli il flusso  La scelta dipende da **come** la tua applicazione si autentica:  - C'è un **utente** che può accedere via browser (web app, SPA, app mobile)? → **Authorization Code con PKCE**. - È un **servizio headless** (backend, batch, integrazione server-to-server) di una **singola azienda**, senza un utente che effettua il login? → **Client Credentials**.  #### Authorization Code con PKCE  Consigliato per le app che operano per conto di un utente Amica ed è l'**unico flusso disponibile per le app pubblicate sul marketplace**. Una sola registrazione serve un numero qualsiasi di aziende: ogni utente autorizza la tua app per la propria azienda tramite la pagina di consenso dell'identity provider, e il token riceve automaticamente il contesto di quell'azienda. La tua app riceve un `code` da scambiare con un access token.  ``` GET  {identity-provider}/connect/authorize?response_type=code&client_id=<client_id>&redirect_uri=<redirect_uri>&scope=openid%20read%20write%20documenti&code_challenge=<challenge>&code_challenge_method=S256 POST {identity-provider}/connect/token      grant_type=authorization_code&code=<code>&code_verifier=<verifier>&client_id=<client_id>&client_secret=<client_secret>&redirect_uri=<redirect_uri> ```  #### Client Credentials  Per integrazioni **server-to-server** senza utente interattivo. Disponibile solo per le **app private**, non per quelle pubblicate sul marketplace. Un'app Client Credentials è **legata a una singola azienda** — quella dell'utente che la registra — e il token ne riceve automaticamente il contesto. Per servire un'azienda diversa serve una registrazione separata; se devi distribuire la stessa app a più aziende usa invece **Authorization Code**.  ``` POST {identity-provider}/connect/token Content-Type: application/x-www-form-urlencoded  grant_type=client_credentials&client_id=<client_id>&client_secret=<client_secret>&scope=comune read write documenti ```  > **Importante:** non includere lo scope `openid` (né `profile`/`email`) in questo flusso. `openid` attiva OpenID Connect — richiede un utente che effettua il login e l'emissione di un ID token — cosa che un flusso server-to-server non prevede: la richiesta viene rifiutata con l'errore `Client cannot request OpenID scopes in client credentials flow`. Indica solo gli scope di risorsa (`comune`, `magazzino`, `documenti`, `contabilita`, ed eventualmente `read`/`write`).  In entrambi i casi la risposta contiene l'`access_token` (JWT con `aud: amica-cloud`) da usare nelle chiamate successive finché non scade (`expires_in`), dopodiché va richiesto un nuovo token. Ogni token contiene uno o più **scope** che determinano le aree accessibili (vedi sotto). Dalla [API Reference](https://amica.dev) è possibile incollare un access token per provare gli endpoint direttamente dal browser.  ## Scope di autorizzazione  L'accesso agli endpoint è governato dagli scope presenti nel token OAuth:  | Scope | Descrizione | |-|-| | `comune` | Anagrafiche: contatti, indirizzi, nazioni, valute, modalità di pagamento, ecc. | | `magazzino` | Magazzino: articoli, listini, movimenti di magazzino, giacenze, distinte base. | | `contabilita` | Contabilità: registrazioni contabili, scadenze, castelletti IVA, fatture elettroniche XML. | | `documenti` | Documenti: fatture, note di credito, DDT, ordini, preventivi, proforma ed emissione. |  Una richiesta verso un endpoint non coperto dallo scope del token riceverà una risposta `403 Forbidden`.  ## Company ID  La maggior parte degli endpoint è relativa a una specifica azienda e segue il pattern:  ``` /api/v3/{companyId}/risorsa ```  Il `companyId` è l'identificativo univoco di ciascun database aziendale. Usare l'endpoint `GET /api/v3/config/Azienda` per ottenere l'elenco delle aziende disponibili.  ## Paginazione  Gli endpoint che restituiscono liste supportano la paginazione tramite query parameter:  | Parametro | Descrizione | |-|-| | `Skip` | Numero di elementi da saltare dall'inizio del set di risultati. | | `Take` | Numero di elementi da includere nella risposta. |  La risposta include due header:  | Header | Descrizione | |-|-| | `X-Read-TotalCount` | Numero totale di elementi che soddisfano il filtro corrente. | | `X-Read-Count` | Numero di elementi effettivamente restituiti nel body della risposta. |  ## Ordinamento e filtri  Gli endpoint lista accettano parametri aggiuntivi:  | Parametro | Descrizione | |-|-| | `Order` | Lista di proprietà per l'ordinamento, separate da virgola. Un segno meno (`-`) prima del nome indica ordine discendente. Es. `-RagioneSociale1,Citta`. | | `Filter` | Condizioni di ricerca: lista di espressioni separate da virgola, ciascuna formata da nome campo, operatore, valore ed eventuale connettore logico. Operatori: `$eq`, `$ne`, `$gt`, `$lt`, `$lte`, `$gte`, `$ct` (contiene), `$nct`, `$sw` (inizia con), `$ew` (finisce con). Connettori: `$and` (default, omissibile) e `$or`; le sotto-query si racchiudono tra `[]`. Es. `RagioneSociale1 $ct acme $or, Fido $gt 1000`. | | `SkipTotalCount` | Se `true`, l'header `X-Read-TotalCount` viene omesso dalla risposta: migliori prestazioni a scapito del conteggio totale. Default `false`. |  ## Espansione oggetti correlati  Gli endpoint singoli e lista supportano il parametro `Expand`. Quando fornito, gli oggetti correlati vengono inclusi inline nella risposta anziché restituiti come riferimenti. È possibile specificare espansioni multiple separate da virgola.  ## Gestione errori  L'API usa codici di stato HTTP standard e restituisce [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details in caso di errore:  | Codice | Significato | |-|-| | `400` | Bad Request — validazione fallita o parametro obbligatorio mancante. | | `401` | Unauthorized — token mancante o scaduto. | | `403` | Forbidden — accesso negato (vedi sotto le possibili cause). | | `404` | Not Found — la risorsa richiesta non esiste. | | `409` | Conflict — conflitto di concorrenza. | | `422` | Unprocessable Entity — entità non processabile (es. token di concorrenza obsoleto). |  Un `403` può avere tre cause; nelle ultime due il campo `code` della risposta indica quale:  - il token non possiede lo scope richiesto dall'endpoint; - `code: cloud_not_active` — l'account lavora con una connessione locale e la Cloud API non espone i suoi dati. Per attivare il servizio cloud contatta l'assistenza, poi richiedi un nuovo token: lo stato del servizio è letto al rilascio del token; - `code: company_license_not_active` — la licenza dell'azienda indicata nel percorso è scaduta o non è attiva. Le altre aziende con licenza attiva restano accessibili.  Il motivo dell'errore è sempre nel campo `detail`. Ogni risposta di errore riporta inoltre `overridable`: quando vale `true`, l'errore di validazione è *forzabile* e basta ripetere la stessa richiesta aggiungendo `validationOverride=true` alla query string perché il servizio la accetti. È il caso delle anomalie formali su dati reali — la partita IVA di un fornitore estero, per esempio — che il cliente ha comunque bisogno di registrare.  ## Controllo della concorrenza  Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`. 
  *
- * The version of the OpenAPI document: 3.1.6
+ * The version of the OpenAPI document: 3.2.0
  * Contact: assistenza@gestionaleamica.com
  * Generated by: https://github.com/openapitools/openapi-generator.git
  */
@@ -521,18 +521,18 @@ namespace Amica.Sdk.Model
         /// <param name="stato">Lo stato corrente del documento. Ad esempio: Bozza, oppure Emesso..</param>
         /// <param name="dataScadenzaPreventivo">La data di scadenza, nel caso in cui il documento sia un preventivo..</param>
         /// <param name="dataInizioScadenze">Data della prima scadenza di pagamento..</param>
-        /// <param name="scontoPercentuale">Sconto, in percentuale, da calcolare sull&#39;intero importo del documento..</param>
+        /// <param name="scontoPercentuale">Sconto, in percentuale, da calcolare sull&#39;intero importo del documento. Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%..</param>
         /// <param name="scontoIncondizionatoImporto">Sconto, in valuta, da applicare all&#39;intero importo del documento..</param>
         /// <param name="abbuonoImporto">Importo dell&#39;abbuono..</param>
-        /// <param name="ritenutaPercentuale">Quota della ritenuta da applicare al documento..</param>
+        /// <param name="ritenutaPercentuale">Quota della ritenuta da applicare al documento. Il valore è una frazione: &#x60;0.20&#x60; corrisponde al 20%..</param>
         /// <param name="enasarcoPercentuale">Contributo Enasarco da applicare al documento..</param>
         /// <param name="enasarcoImporto">Importo Enasarco..</param>
-        /// <param name="quotaRitenutaSuImponibile">Quota dell&#39;imponibile su cui applicare la ritenuta..</param>
+        /// <param name="quotaRitenutaSuImponibile">Quota dell&#39;imponibile su cui applicare la ritenuta. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%..</param>
         /// <param name="cambio">Tasso di cambio rispetto all&#39;Euro, nel caso in cui la &#x60;Valuta&#x60; del documento non sia l&#39;Euro..</param>
         /// <param name="cassaPrevidenzialeNome">Nome della cassa previdenziale applicata al documento..</param>
-        /// <param name="cassaPrevidenzialePercentuale">Aliquota (percentuale) della cassa previdenziale da applicare al documento..</param>
+        /// <param name="cassaPrevidenzialePercentuale">Aliquota (percentuale) della cassa previdenziale da applicare al documento. Il valore è una frazione: &#x60;0.04&#x60; corrisponde al 4%..</param>
         /// <param name="note">Note..</param>
-        /// <param name="scontoPagamentoPercentuale">Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta)..</param>
+        /// <param name="scontoPagamentoPercentuale">Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta). Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%..</param>
         /// <param name="iva1Imponibile">Totale imponibile attribuibile a &#x60;Iva1CausaleIva&#x60;.</param>
         /// <param name="iva2Imponibile">Totale imponibile attribuibile a &#x60;Iva2CausaleIva&#x60;.</param>
         /// <param name="iva3Imponibile">Totale imponibile attribuibile a &#x60;Iva3CausaleIva&#x60;.</param>
@@ -573,7 +573,7 @@ namespace Amica.Sdk.Model
         /// <param name="allegato">Obsoleto. Non utilizzare..</param>
         /// <param name="bonusFiscaleCausale">Causale del bonus fiscale..</param>
         /// <param name="bonusFiscaleImporto">Importo del bonus fiscale..</param>
-        /// <param name="bonusFiscalePercentuale">Percentuale del bonus fiscale..</param>
+        /// <param name="bonusFiscalePercentuale">Percentuale del bonus fiscale. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%..</param>
         /// <param name="progressivoInvio">Numeri di invio (progressivi), così come restituiti dallo Sdi..</param>
         public Documento(int id = default(int), int concurrencyToken = default(int), int anagraficaId = default(int), Anagrafica anagrafica = default(Anagrafica), int? causaleDocumentoId = default(int?), CausaleDocumento causaleDocumento = default(CausaleDocumento), int? agenteId = default(int?), Anagrafica agente = default(Anagrafica), int? pagamentoId = default(int?), Pagamento pagamento = default(Pagamento), int? vettoreId = default(int?), Anagrafica vettore = default(Anagrafica), int? cassaPrevidenzialeCausaleIvaId = default(int?), int? modelloId = default(int?), CausaleIva cassaPrevidenzialeCausaleIva = default(CausaleIva), int? destinazioneId = default(int?), Indirizzo destinazione = default(Indirizzo), int? valutaId = default(int?), Valuta valuta = default(Valuta), int? causaleMagazzinoId = default(int?), CausaleMagazzino causaleMagazzino = default(CausaleMagazzino), int? iva1CausaleIvaId = default(int?), CausaleIva iva1CausaleIva = default(CausaleIva), int? iva2CausaleIvaId = default(int?), CausaleIva iva2CausaleIva = default(CausaleIva), int? iva3CausaleIvaId = default(int?), CausaleIva iva3CausaleIva = default(CausaleIva), int? iva4CausaleIvaId = default(int?), CausaleIva iva4CausaleIva = default(CausaleIva), TipoDocumentoEnum? tipoDocumento = default(TipoDocumentoEnum?), DocumentoFiscaleEnum? documentoFiscale = default(DocumentoFiscaleEnum?), bool destinazioneDiversa = default(bool), bool ivaEsclusa = default(bool), bool ritenutaIncludeCassaPrevidenziale = default(bool), ClasseDocumentoEnum? classeDocumento = default(ClasseDocumentoEnum?), int? contatto = default(int?), string numeroParteTesto = default(string), int numeroParteNumerica = default(int), DateTime data = default(DateTime), StatoEnum? stato = default(StatoEnum?), DateTime? dataScadenzaPreventivo = default(DateTime?), DateTime? dataInizioScadenze = default(DateTime?), double scontoPercentuale = default(double), double scontoIncondizionatoImporto = default(double), double abbuonoImporto = default(double), double ritenutaPercentuale = default(double), double enasarcoPercentuale = default(double), double enasarcoImporto = default(double), double quotaRitenutaSuImponibile = default(double), double cambio = default(double), string cassaPrevidenzialeNome = default(string), double cassaPrevidenzialePercentuale = default(double), string note = default(string), double scontoPagamentoPercentuale = default(double), double iva1Imponibile = default(double), double iva2Imponibile = default(double), double iva3Imponibile = default(double), double iva4Imponibile = default(double), double iva1ImponibileLordo = default(double), double iva2ImponibileLordo = default(double), double iva3ImponibileLordo = default(double), double iva4ImponibileLordo = default(double), double iva1Imposta = default(double), double iva2Imposta = default(double), double iva3Imposta = default(double), double iva4Imposta = default(double), double totaleRitenuta = default(double), double totaleCassaPrevidenziale = default(double), double totaleSpese = default(double), double totaleSpeseEsenti = default(double), double totaleSpeseNonEsenti = default(double), double totaleMerce = default(double), double totaleMerceScontata = default(double), double totaleImponibile = default(double), double totaleImposta = default(double), double totaleEsente = default(double), double totaleDocumento = default(double), double nettoAPagare = default(double), double totaleSplitPayment = default(double), double bollo = default(double), string xmlFileName = default(string), string riferimentoAmministrazione = default(string), BancaDocumento banca = default(BancaDocumento), DatiTrasporto datiTrasporto = default(DatiTrasporto), DatiSdi datiSdi = default(DatiSdi), DatiPA datiPA = default(DatiPA), List<BeneServizio> righe = default(List<BeneServizio>), List<SpesaDocumento> speseDocumento = default(List<SpesaDocumento>), List<Scadenza> scadenze = default(List<Scadenza>), string numero = default(string), DocumentoMediaFile mediaFile = default(DocumentoMediaFile), string allegato = default(string), string bonusFiscaleCausale = default(string), double bonusFiscaleImporto = default(double), double bonusFiscalePercentuale = default(double), List<ProgressivoInvio> progressivoInvio = default(List<ProgressivoInvio>))
         {
@@ -953,11 +953,11 @@ namespace Amica.Sdk.Model
         public DateTime? DataInizioScadenze { get; set; }
 
         /// <summary>
-        /// Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.
+        /// Sconto, in percentuale, da calcolare sull&#39;intero importo del documento. Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%.
         /// </summary>
-        /// <value>Sconto, in percentuale, da calcolare sull&#39;intero importo del documento.</value>
+        /// <value>Sconto, in percentuale, da calcolare sull&#39;intero importo del documento. Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%.</value>
         /*
-        <example>5.0</example>
+        <example>0.05</example>
         */
         [DataMember(Name = "scontoPercentuale", EmitDefaultValue = false)]
         public double ScontoPercentuale { get; set; }
@@ -983,11 +983,11 @@ namespace Amica.Sdk.Model
         public double AbbuonoImporto { get; set; }
 
         /// <summary>
-        /// Quota della ritenuta da applicare al documento.
+        /// Quota della ritenuta da applicare al documento. Il valore è una frazione: &#x60;0.20&#x60; corrisponde al 20%.
         /// </summary>
-        /// <value>Quota della ritenuta da applicare al documento.</value>
+        /// <value>Quota della ritenuta da applicare al documento. Il valore è una frazione: &#x60;0.20&#x60; corrisponde al 20%.</value>
         /*
-        <example>20.0</example>
+        <example>0.2</example>
         */
         [DataMember(Name = "ritenutaPercentuale", EmitDefaultValue = false)]
         public double RitenutaPercentuale { get; set; }
@@ -1013,11 +1013,11 @@ namespace Amica.Sdk.Model
         public double EnasarcoImporto { get; set; }
 
         /// <summary>
-        /// Quota dell&#39;imponibile su cui applicare la ritenuta.
+        /// Quota dell&#39;imponibile su cui applicare la ritenuta. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%.
         /// </summary>
-        /// <value>Quota dell&#39;imponibile su cui applicare la ritenuta.</value>
+        /// <value>Quota dell&#39;imponibile su cui applicare la ritenuta. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%.</value>
         /*
-        <example>50.0</example>
+        <example>0.5</example>
         */
         [DataMember(Name = "quotaRitenutaSuImponibile", EmitDefaultValue = false)]
         public double QuotaRitenutaSuImponibile { get; set; }
@@ -1043,11 +1043,11 @@ namespace Amica.Sdk.Model
         public string CassaPrevidenzialeNome { get; set; }
 
         /// <summary>
-        /// Aliquota (percentuale) della cassa previdenziale da applicare al documento.
+        /// Aliquota (percentuale) della cassa previdenziale da applicare al documento. Il valore è una frazione: &#x60;0.04&#x60; corrisponde al 4%.
         /// </summary>
-        /// <value>Aliquota (percentuale) della cassa previdenziale da applicare al documento.</value>
+        /// <value>Aliquota (percentuale) della cassa previdenziale da applicare al documento. Il valore è una frazione: &#x60;0.04&#x60; corrisponde al 4%.</value>
         /*
-        <example>4.0</example>
+        <example>0.04</example>
         */
         [DataMember(Name = "cassaPrevidenzialePercentuale", EmitDefaultValue = false)]
         public double CassaPrevidenzialePercentuale { get; set; }
@@ -1063,11 +1063,11 @@ namespace Amica.Sdk.Model
         public string Note { get; set; }
 
         /// <summary>
-        /// Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).
+        /// Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta). Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%.
         /// </summary>
-        /// <value>Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta).</value>
+        /// <value>Sconto riconosciuto in base alla modalità di pagamento utilizzata (es: +5% in caso di rimessa diretta). Il valore è una frazione: &#x60;0.05&#x60; corrisponde al 5%.</value>
         /*
-        <example>5.0</example>
+        <example>0.05</example>
         */
         [DataMember(Name = "scontoPagamentoPercentuale", EmitDefaultValue = false)]
         public double ScontoPagamentoPercentuale { get; set; }
@@ -1441,11 +1441,11 @@ namespace Amica.Sdk.Model
         public double BonusFiscaleImporto { get; set; }
 
         /// <summary>
-        /// Percentuale del bonus fiscale.
+        /// Percentuale del bonus fiscale. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%.
         /// </summary>
-        /// <value>Percentuale del bonus fiscale.</value>
+        /// <value>Percentuale del bonus fiscale. Il valore è una frazione: &#x60;0.50&#x60; corrisponde al 50%.</value>
         /*
-        <example>50.0</example>
+        <example>0.5</example>
         */
         [DataMember(Name = "bonusFiscalePercentuale", EmitDefaultValue = false)]
         public double BonusFiscalePercentuale { get; set; }
