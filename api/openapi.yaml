@@ -128,7 +128,7 @@ info:
 
     Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`.
   title: Amica Cloud API
-  version: 3.2.1
+  version: 3.2.2
   x-logo:
     url: https://gestionaleamica.com/assets/img/Logo_Amica_Scritta.png
     altText: "Amica: tutto il software che serve per gestire la tua azienda"
@@ -97157,7 +97157,8 @@ components:
           example: false
           type: boolean
         pagata:
-          description: Indica se la scadenza è pagata.
+          description: "Indica se la scadenza è pagata: `ImportoDaPagare`, arrotondato\
+            \ al centesimo, è zero."
           example: false
           readOnly: true
           type: boolean
@@ -97235,7 +97236,8 @@ components:
           format: double
           type: number
         importoDaPagare:
-          description: Rimanenza che risulta ancora da pagare.
+          description: "Rimanenza che risulta ancora da pagare, arrotondata al centesimo\
+            \ come nel client Windows."
           example: 1250.0
           format: double
           readOnly: true

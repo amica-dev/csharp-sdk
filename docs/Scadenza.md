@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 **ModalitaPagamentoId** | **int?** | Identificativo univoco di &#x60;ModalitaPagamento&#x60;. | [optional] 
 **ModalitaPagamento** | [**ModalitaPagamento**](ModalitaPagamento.md) |  | [optional] 
 **PagataManualmente** | **bool** | Indica se la scadenza è stata impostata manualmente come &#39;pagata&#39;. | [optional] 
-**Pagata** | **bool** | Indica se la scadenza è pagata. | [optional] [readonly] 
+**Pagata** | **bool** | Indica se la scadenza è pagata: &#x60;ImportoDaPagare&#x60;, arrotondato al centesimo, è zero. | [optional] [readonly] 
 **Data** | **DateTime** | Data di scadenza. | [optional] 
 **DataPagamento** | **DateTime?** | Data di pagamento. | [optional] 
 **DataDocumento** | **DateTime?** | Data del documento fiscale. | [optional] 
@@ -30,7 +30,7 @@ Name | Type | Description | Notes
 **DocumentoNumero** | **string** | Numero documento, es. \&quot;99/bis\&quot;. Il documento deve essere già salvato sul sistema. | [optional] 
 **TipoScadenza** | **string** | Tipo di scadenza. | [optional] 
 **ImportoPagato** | **double** | L&#39;importo già pagato della scadenza. | [optional] 
-**ImportoDaPagare** | **double** | Rimanenza che risulta ancora da pagare. | [optional] [readonly] 
+**ImportoDaPagare** | **double** | Rimanenza che risulta ancora da pagare, arrotondata al centesimo come nel client Windows. | [optional] [readonly] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
