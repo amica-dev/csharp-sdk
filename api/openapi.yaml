@@ -128,7 +128,7 @@ info:
 
     Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`.
   title: Amica Cloud API
-  version: 3.2.0
+  version: 3.2.1
   x-logo:
     url: https://gestionaleamica.com/assets/img/Logo_Amica_Scritta.png
     altText: "Amica: tutto il software che serve per gestire la tua azienda"
