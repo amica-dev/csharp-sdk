@@ -128,7 +128,7 @@ info:
 
     Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`.
   title: Amica Cloud API
-  version: 3.2.2
+  version: 3.2.3
   x-logo:
     url: https://gestionaleamica.com/assets/img/Logo_Amica_Scritta.png
     altText: "Amica: tutto il software che serve per gestire la tua azienda"
@@ -78778,9 +78778,13 @@ components:
           nullable: true
           type: string
         descrizione:
-          description: Descrizione.
+          description: |-
+            Descrizione. Obbligatoria, tranne che sulle righe di totale per aliquota create dall'importazione dei DDT
+            con `Totali`: hanno `CausaleIvaId` e `Importo` ma niente
+            `ArticoloId` né descrizione, e la fattura elettronica usa come loro descrizione il riferimento
+            al DDT che le precede.
           example: Cacciavite a croce
-          minLength: 1
+          nullable: true
           type: string
         unitàMisura:
           description: Unità di misura.
@@ -78908,8 +78912,6 @@ components:
           nullable: true
           readOnly: true
           type: string
-      required:
-      - descrizione
       type: object
     BeneServizioComputeData:
       additionalProperties: false
