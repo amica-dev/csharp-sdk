@@ -128,7 +128,7 @@ info:
 
     Le entità contengono una proprietà `ConcurrencyToken`. Quando si aggiorna un'entità tramite `PUT`, il token nel body della richiesta viene confrontato con il valore memorizzato. Se differiscono, viene restituito un `422 Unprocessable Entity`. Usare sempre l'ultimo token ricevuto da una risposta `GET` o `POST`.
   title: Amica Cloud API
-  version: 3.2.4
+  version: 3.3.0
   x-logo:
     url: https://gestionaleamica.com/assets/img/Logo_Amica_Scritta.png
     altText: "Amica: tutto il software che serve per gestire la tua azienda"
@@ -41066,6 +41066,231 @@ paths:
         `Numero` appropriato, basato sui documenti preesistenti di tipo compatibile).
       tags:
       - Inventario
+  /api/v3/{companyId}/Listino/compute:
+    post:
+      description: "Il listino può essere nuovo o avere modifiche non salvate: le\
+        \ procedure lavorano sulle righe ricevute. Va\nvalorizzato solo il gruppo\
+        \ di parametri della procedura scelta in `procedura`:\n            \n- `Aggiungi`:\
+        \ una riga per ogni articolo attivo non ancora nel listino, con il solo articolo\
+        \ e il resto a\n  zero, prezzo compreso. Gli articoli sono tutti, quelli del\
+        \ produttore, della marca, della categoria o del\n  gruppo merceologico indicato\
+        \ in `id`, o quelli inseriti dal giorno `dal` in poi. Mai prestazioni.\n-\
+        \ `Duplica`: le righe articolo del listino `listinoId`, clienti o fornitori,\
+        \ per gli articoli non\n  ancora presenti, con prezzo, sconti, ricarico e\
+        \ provvigioni. Le righe di prestazione non si copiano.\n- `ModificaPrezzi`:\
+        \ aumenta o diminuisce il prezzo di ogni riga di una `percentuale`, con il\n\
+        \  risultato arrotondato ai decimali dei prezzi unitari delle preferenze,\
+        \ o di un `importo` fisso, senza\n  arrotondamento. Va indicato uno solo dei\
+        \ due.\n- `Sconti`: i quattro sconti su ogni riga.\n- `Provvigioni`: le provvigioni\
+        \ di agente e capo area su ogni riga.\n            \nPercentuali, sconti e\
+        \ provvigioni sono frazioni: `0.05` corrisponde al 5%. Le righe nuove hanno\
+        \ Id 0.\nPer salvare il risultato si invia il listino con `POST` o `PUT`.\
+        \ Il listino non si valida: può\nessere ancora senza nome."
+      operationId: ListinoCompute
+      parameters:
+      - description: ID univoco dell'azienda.
+        explode: false
+        in: path
+        name: companyId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: "Chiave di idempotenza (opzionale). Inviando la stessa chiave\
+          \ su un retry si riottiene la risposta della prima richiesta senza rieseguire\
+          \ l'operazione: rende sicuri i retry automatici. Usa un valore univoco per\
+          \ operazione logica (es. un UUID). La risposta replicata riporta l'header\
+          \ `Idempotent-Replayed: true`."
+        explode: false
+        in: header
+        name: Idempotency-Key
+        required: false
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListinoComputeData'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ListinoComputeData'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ListinoComputeData'
+        description: "Il listino aperto con le sue righe attuali, la procedura e i\
+          \ suoi parametri."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListinoComputeResult'
+          description: Successo. Restituisce il listino con le righe risultanti.
+          headers:
+            RateLimit-Limit:
+              description: Numero massimo di richieste consentite al client nella
+                finestra corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Remaining:
+              description: Richieste ancora disponibili per il client nella finestra
+                corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Reset:
+              description: Secondi al rinnovo dei permessi del client.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Policy:
+              description: "Policy di rate limiting applicata, nel formato `<limite>;w=<finestra\
+                \ in secondi>`."
+              explode: false
+              schema:
+                type: string
+              style: simple
+            Idempotent-Replayed:
+              description: Presente e pari a `true` quando la risposta è la replica
+                di una richiesta precedente con la stessa Idempotency-Key.
+              explode: false
+              schema:
+                type: boolean
+              style: simple
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: "Bad Request. Mancano i parametri della procedura, o il listino\
+            \ da duplicare non esiste."
+          headers:
+            RateLimit-Limit:
+              description: Numero massimo di richieste consentite al client nella
+                finestra corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Remaining:
+              description: Richieste ancora disponibili per il client nella finestra
+                corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Reset:
+              description: Secondi al rinnovo dei permessi del client.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Policy:
+              description: "Policy di rate limiting applicata, nel formato `<limite>;w=<finestra\
+                \ in secondi>`."
+              explode: false
+              schema:
+                type: string
+              style: simple
+            Idempotent-Replayed:
+              description: Presente e pari a `true` quando la risposta è la replica
+                di una richiesta precedente con la stessa Idempotency-Key.
+              explode: false
+              schema:
+                type: boolean
+              style: simple
+        "429":
+          description: "Troppe richieste: superato il limite di rate per il client."
+          headers:
+            RateLimit-Limit:
+              description: Numero massimo di richieste consentite al client nella
+                finestra corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Remaining:
+              description: Richieste ancora disponibili per il client nella finestra
+                corrente.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Reset:
+              description: Secondi al rinnovo dei permessi del client.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            RateLimit-Policy:
+              description: "Policy di rate limiting applicata, nel formato `<limite>;w=<finestra\
+                \ in secondi>`."
+              explode: false
+              schema:
+                type: string
+              style: simple
+            Retry-After:
+              description: Secondi da attendere prima di inviare una nuova richiesta.
+              explode: false
+              schema:
+                format: int32
+                type: integer
+              style: simple
+            Idempotent-Replayed:
+              description: Presente e pari a `true` quando la risposta è la replica
+                di una richiesta precedente con la stessa Idempotency-Key.
+              explode: false
+              schema:
+                type: boolean
+              style: simple
+        "409":
+          description: "Conflitto: una richiesta con la stessa Idempotency-Key è ancora\
+            \ in elaborazione."
+        "422":
+          description: "La stessa Idempotency-Key è già stata usata per una richiesta\
+            \ con metodo, URL o corpo diversi."
+        "401":
+          description: "Non autenticato: access token mancante, non valido o scaduto.\
+            \ Ottieni un nuovo access token e ripeti la richiesta. La risposta non\
+            \ ha corpo."
+          headers:
+            WWW-Authenticate:
+              description: Schema di autenticazione richiesto (`Bearer`) ed eventuale
+                motivo del rifiuto del token.
+              explode: false
+              schema:
+                type: string
+              style: simple
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+          description: |-
+            Accesso negato. Le cause possibili:
+
+            - il token non possiede lo scope richiesto dall'operazione (risposta senza corpo);
+            - `code: cloud_not_active`: l'account lavora con una connessione locale e la Cloud API non espone i suoi dati;
+            - `code: company_license_not_active`: la licenza dell'azienda indicata nel percorso è scaduta o non è attiva; le altre aziende con licenza attiva restano accessibili.
+      summary: "Esegue una procedura sulle righe di un listino, come il client Windows,\
+        \ senza salvare nulla."
+      tags:
+      - Listino
   /api/v3/{companyId}/Listino:
     get:
       description: |2-
@@ -88548,6 +88773,821 @@ components:
           type: array
       required:
       - nome
+      type: object
+    ListinoComputeAggiungi:
+      additionalProperties: false
+      description: Parametri della procedura `Aggiungi`.
+      example:
+        filtro: Marca
+        id: 12
+        dal: 2000-01-23T04:56:07.000+00:00
+      properties:
+        filtro:
+          description: Quali articoli aggiungere.
+          enum:
+          - Tutti
+          - Produttore
+          - Marca
+          - CategoriaMerceologica
+          - GruppoMerceologico
+          - DataInserimento
+          example: Marca
+          type: string
+        id:
+          description: |-
+            Identificativo univoco del produttore, della marca, della categoria o del gruppo merceologico, secondo
+            `Filtro`.
+          example: 12
+          format: int32
+          nullable: true
+          type: integer
+        dal:
+          description: |-
+            Con `DataInserimento`, si aggiungono gli articoli inseriti in questa data
+            o dopo.
+          format: date-time
+          nullable: true
+          type: string
+      type: object
+    ListinoComputeData:
+      additionalProperties: false
+      description: |-
+        Utilizzato dal metodo `Compute` di `ListinoService`. Contiene il listino aperto, anche
+        non ancora salvato, con le sue righe attuali, la procedura da eseguire e i suoi parametri. Va valorizzato solo il
+        gruppo di parametri della procedura scelta.
+      example:
+        sconti:
+          sconto2: 0.05
+          sconto3: 0.0
+          sconto4: 0.0
+          sconto1: 0.1
+        modificaPrezzi:
+          operazione: Aumenta
+          percentuale: 0.05
+          importo: 1.5
+        listino:
+          note: Listino riservato ai clienti rivenditori.
+          validoDal: 2000-01-23T04:56:07.000+00:00
+          valuta:
+            cambio: 1.0
+            sigla: EUR
+            predefinita: true
+            nome: Euro
+            id: 1
+            concurrencyToken: 12345
+          dataCreazione: 2000-01-23T04:56:07.000+00:00
+          valutaId: 1
+          ricarico: 15.0
+          nome: Listino vendite 2026
+          fornitoreId: 1
+          fornitore: null
+          calcoloPrezzi: Manuale
+          validoAl: 2000-01-23T04:56:07.000+00:00
+          righe:
+          - provvigioneCapoArea: 2.5
+            sconto2: 0.05
+            sconto3: 0.0
+            sconto4: 0.0
+            importo: 12.5
+            ricarico: 20.0
+            sconto1: 0.1
+            prestazione:
+              causaleIvaId: 1
+              note: Prestazione soggetta a ritenuta d'acconto.
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              codice: COD001
+              nome: Consulenza tecnica
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              stato: true
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              categoriaMerceologicaId: 1
+              id: 1
+              concurrencyToken: 12345
+            articoloId: 1
+            listinoId: 1
+            articolo:
+              note: Articolo soggetto a riordino automatico.
+              unitàMisuraIntera: false
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              costoUltimo: 8.9
+              produttore:
+                nome: Acme S.p.A.
+                id: 1
+                concurrencyToken: 12345
+              contestoArticolo: Sempre
+              distintaBase:
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              fattoreConversioneUnitàMisura: 1.0
+              tagliaId: 1
+              unitàMisuraInventario: PZ
+              mediaFile:
+                articoloId: 1
+                fieldName: immagine
+                data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                id: 1
+                concurrencyToken: 12345
+              codiceProduttore: PROD-456
+              marca:
+                nome: Nike
+                id: 1
+                concurrencyToken: 12345
+              stato: true
+              unitàMisuraMovimenti: PZ
+              taglia:
+                taglia12: "50"
+                taglia11: "48"
+                taglia10: "46"
+                taglia16: "58"
+                taglia15: "56"
+                taglia14: "54"
+                taglia13: "52"
+                nome: Taglia M
+                taglia1: XL
+                taglia9: "44"
+                taglia8: "42"
+                taglia7: "40"
+                id: 1
+                taglia6: "38"
+                taglia5: XS
+                taglia4: S
+                concurrencyToken: 12345
+                taglia3: M
+                taglia2: L
+              codiceFornitore: FORN-789
+              categoriaMerceologicaId: 1
+              id: 1
+              causaleIvaId: 1
+              gestioneArticolo: Standard
+              codice: ART001
+              nomeBreve: Cacciavite
+              nome: Cacciavite a croce
+              contoRawVendita: 40.05.001
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              costoMedio: 9.2
+              dataInserimento: 2000-01-23T04:56:07.000+00:00
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              marcaId: 1
+              contoRawAcquisto: 60.05.001
+              produttoreId: 1
+              concurrencyToken: 12345
+              articoloComposto: false
+            provvigioneAgente: 5.0
+            prestazioneId: 1
+            id: 1
+            concurrencyToken: 12345
+          - provvigioneCapoArea: 2.5
+            sconto2: 0.05
+            sconto3: 0.0
+            sconto4: 0.0
+            importo: 12.5
+            ricarico: 20.0
+            sconto1: 0.1
+            prestazione:
+              causaleIvaId: 1
+              note: Prestazione soggetta a ritenuta d'acconto.
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              codice: COD001
+              nome: Consulenza tecnica
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              stato: true
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              categoriaMerceologicaId: 1
+              id: 1
+              concurrencyToken: 12345
+            articoloId: 1
+            listinoId: 1
+            articolo:
+              note: Articolo soggetto a riordino automatico.
+              unitàMisuraIntera: false
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              costoUltimo: 8.9
+              produttore:
+                nome: Acme S.p.A.
+                id: 1
+                concurrencyToken: 12345
+              contestoArticolo: Sempre
+              distintaBase:
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              fattoreConversioneUnitàMisura: 1.0
+              tagliaId: 1
+              unitàMisuraInventario: PZ
+              mediaFile:
+                articoloId: 1
+                fieldName: immagine
+                data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                id: 1
+                concurrencyToken: 12345
+              codiceProduttore: PROD-456
+              marca:
+                nome: Nike
+                id: 1
+                concurrencyToken: 12345
+              stato: true
+              unitàMisuraMovimenti: PZ
+              taglia:
+                taglia12: "50"
+                taglia11: "48"
+                taglia10: "46"
+                taglia16: "58"
+                taglia15: "56"
+                taglia14: "54"
+                taglia13: "52"
+                nome: Taglia M
+                taglia1: XL
+                taglia9: "44"
+                taglia8: "42"
+                taglia7: "40"
+                id: 1
+                taglia6: "38"
+                taglia5: XS
+                taglia4: S
+                concurrencyToken: 12345
+                taglia3: M
+                taglia2: L
+              codiceFornitore: FORN-789
+              categoriaMerceologicaId: 1
+              id: 1
+              causaleIvaId: 1
+              gestioneArticolo: Standard
+              codice: ART001
+              nomeBreve: Cacciavite
+              nome: Cacciavite a croce
+              contoRawVendita: 40.05.001
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              costoMedio: 9.2
+              dataInserimento: 2000-01-23T04:56:07.000+00:00
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              marcaId: 1
+              contoRawAcquisto: 60.05.001
+              produttoreId: 1
+              concurrencyToken: 12345
+              articoloComposto: false
+            provvigioneAgente: 5.0
+            prestazioneId: 1
+            id: 1
+            concurrencyToken: 12345
+          id: 1
+          tipoListino: Vendite
+          concurrencyToken: 12345
+          ivaInclusa: true
+        aggiungi:
+          filtro: Marca
+          id: 12
+          dal: 2000-01-23T04:56:07.000+00:00
+        procedura: Aggiungi
+        duplica:
+          listinoId: 891
+        provvigioni:
+          agente: 0.05
+          capoArea: 0.02
+      properties:
+        listino:
+          $ref: '#/components/schemas/Listino'
+        procedura:
+          description: La procedura da eseguire sulle righe del listino.
+          enum:
+          - Aggiungi
+          - Duplica
+          - ModificaPrezzi
+          - Sconti
+          - Provvigioni
+          example: Aggiungi
+          type: string
+        aggiungi:
+          $ref: '#/components/schemas/ListinoComputeAggiungi'
+        duplica:
+          $ref: '#/components/schemas/ListinoComputeDuplica'
+        modificaPrezzi:
+          $ref: '#/components/schemas/ListinoComputeModificaPrezzi'
+        sconti:
+          $ref: '#/components/schemas/ListinoComputeSconti'
+        provvigioni:
+          $ref: '#/components/schemas/ListinoComputeProvvigioni'
+      type: object
+    ListinoComputeDuplica:
+      additionalProperties: false
+      description: Parametri della procedura `Duplica`.
+      example:
+        listinoId: 891
+      properties:
+        listinoId:
+          description: "Identificativo univoco del `Listino` da cui copiare le righe,\
+            \ clienti o fornitori."
+          example: 891
+          format: int32
+          type: integer
+      type: object
+    ListinoComputeModificaPrezzi:
+      additionalProperties: false
+      description: |-
+        Parametri della procedura `ModificaPrezzi`. Va indicato uno solo fra
+        `Percentuale` e `Importo`.
+      example:
+        operazione: Aumenta
+        percentuale: 0.05
+        importo: 1.5
+      properties:
+        operazione:
+          description: Se aumentare o diminuire i prezzi.
+          enum:
+          - Aumenta
+          - Diminuisci
+          example: Aumenta
+          type: string
+        percentuale:
+          description: |-
+            Variazione percentuale di ogni prezzo, come frazione: `0.05` corrisponde al 5%. Il risultato è arrotondato
+            ai decimali dei prezzi unitari delle preferenze.
+          example: 0.05
+          format: double
+          nullable: true
+          type: number
+        importo:
+          description: Importo fisso da aggiungere o togliere a ogni prezzo. Il risultato
+            non è arrotondato.
+          example: 1.5
+          format: double
+          nullable: true
+          type: number
+      type: object
+    ListinoComputeProvvigioni:
+      additionalProperties: false
+      description: |-
+        Parametri della procedura `Provvigioni`: le provvigioni da assegnare a ogni riga,
+        come frazione (`0.05` corrisponde al 5%).
+      example:
+        agente: 0.05
+        capoArea: 0.02
+      properties:
+        agente:
+          description: Provvigione dell'agente.
+          example: 0.05
+          format: double
+          type: number
+        capoArea:
+          description: Provvigione del capo area.
+          example: 0.02
+          format: double
+          type: number
+      type: object
+    ListinoComputeResult:
+      additionalProperties: false
+      description: Restituito dal metodo `Compute` di `ListinoService`.
+      example:
+        avvisi:
+        - 12 articoli erano già nel listino.
+        listino:
+          note: Listino riservato ai clienti rivenditori.
+          validoDal: 2000-01-23T04:56:07.000+00:00
+          valuta:
+            cambio: 1.0
+            sigla: EUR
+            predefinita: true
+            nome: Euro
+            id: 1
+            concurrencyToken: 12345
+          dataCreazione: 2000-01-23T04:56:07.000+00:00
+          valutaId: 1
+          ricarico: 15.0
+          nome: Listino vendite 2026
+          fornitoreId: 1
+          fornitore: null
+          calcoloPrezzi: Manuale
+          validoAl: 2000-01-23T04:56:07.000+00:00
+          righe:
+          - provvigioneCapoArea: 2.5
+            sconto2: 0.05
+            sconto3: 0.0
+            sconto4: 0.0
+            importo: 12.5
+            ricarico: 20.0
+            sconto1: 0.1
+            prestazione:
+              causaleIvaId: 1
+              note: Prestazione soggetta a ritenuta d'acconto.
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              codice: COD001
+              nome: Consulenza tecnica
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              stato: true
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              categoriaMerceologicaId: 1
+              id: 1
+              concurrencyToken: 12345
+            articoloId: 1
+            listinoId: 1
+            articolo:
+              note: Articolo soggetto a riordino automatico.
+              unitàMisuraIntera: false
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              costoUltimo: 8.9
+              produttore:
+                nome: Acme S.p.A.
+                id: 1
+                concurrencyToken: 12345
+              contestoArticolo: Sempre
+              distintaBase:
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              fattoreConversioneUnitàMisura: 1.0
+              tagliaId: 1
+              unitàMisuraInventario: PZ
+              mediaFile:
+                articoloId: 1
+                fieldName: immagine
+                data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                id: 1
+                concurrencyToken: 12345
+              codiceProduttore: PROD-456
+              marca:
+                nome: Nike
+                id: 1
+                concurrencyToken: 12345
+              stato: true
+              unitàMisuraMovimenti: PZ
+              taglia:
+                taglia12: "50"
+                taglia11: "48"
+                taglia10: "46"
+                taglia16: "58"
+                taglia15: "56"
+                taglia14: "54"
+                taglia13: "52"
+                nome: Taglia M
+                taglia1: XL
+                taglia9: "44"
+                taglia8: "42"
+                taglia7: "40"
+                id: 1
+                taglia6: "38"
+                taglia5: XS
+                taglia4: S
+                concurrencyToken: 12345
+                taglia3: M
+                taglia2: L
+              codiceFornitore: FORN-789
+              categoriaMerceologicaId: 1
+              id: 1
+              causaleIvaId: 1
+              gestioneArticolo: Standard
+              codice: ART001
+              nomeBreve: Cacciavite
+              nome: Cacciavite a croce
+              contoRawVendita: 40.05.001
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              costoMedio: 9.2
+              dataInserimento: 2000-01-23T04:56:07.000+00:00
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              marcaId: 1
+              contoRawAcquisto: 60.05.001
+              produttoreId: 1
+              concurrencyToken: 12345
+              articoloComposto: false
+            provvigioneAgente: 5.0
+            prestazioneId: 1
+            id: 1
+            concurrencyToken: 12345
+          - provvigioneCapoArea: 2.5
+            sconto2: 0.05
+            sconto3: 0.0
+            sconto4: 0.0
+            importo: 12.5
+            ricarico: 20.0
+            sconto1: 0.1
+            prestazione:
+              causaleIvaId: 1
+              note: Prestazione soggetta a ritenuta d'acconto.
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              codice: COD001
+              nome: Consulenza tecnica
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              stato: true
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              categoriaMerceologicaId: 1
+              id: 1
+              concurrencyToken: 12345
+            articoloId: 1
+            listinoId: 1
+            articolo:
+              note: Articolo soggetto a riordino automatico.
+              unitàMisuraIntera: false
+              gruppoMerceologico:
+                nome: Abbigliamento
+                id: 1
+                concurrencyToken: 12345
+              causaleIva:
+                natura: N1
+                fatturaElettronica: false
+                intracomunitaria: false
+                nonImponibile: false
+                aliquota: 0.22
+                codice: "22"
+                splitPayment: false
+                nome: IVA 22%
+                id: 1
+                concurrencyToken: 12345
+                indeducibilità: 0.0
+              costoUltimo: 8.9
+              produttore:
+                nome: Acme S.p.A.
+                id: 1
+                concurrencyToken: 12345
+              contestoArticolo: Sempre
+              distintaBase:
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              - articoloId: 1
+                articoloComponente: null
+                quantitaNecessaria: 10
+                articolo: null
+                articoloComponenteId: 1
+                id: 1
+                concurrencyToken: 12345
+              fattoreConversioneUnitàMisura: 1.0
+              tagliaId: 1
+              unitàMisuraInventario: PZ
+              mediaFile:
+                articoloId: 1
+                fieldName: immagine
+                data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                id: 1
+                concurrencyToken: 12345
+              codiceProduttore: PROD-456
+              marca:
+                nome: Nike
+                id: 1
+                concurrencyToken: 12345
+              stato: true
+              unitàMisuraMovimenti: PZ
+              taglia:
+                taglia12: "50"
+                taglia11: "48"
+                taglia10: "46"
+                taglia16: "58"
+                taglia15: "56"
+                taglia14: "54"
+                taglia13: "52"
+                nome: Taglia M
+                taglia1: XL
+                taglia9: "44"
+                taglia8: "42"
+                taglia7: "40"
+                id: 1
+                taglia6: "38"
+                taglia5: XS
+                taglia4: S
+                concurrencyToken: 12345
+                taglia3: M
+                taglia2: L
+              codiceFornitore: FORN-789
+              categoriaMerceologicaId: 1
+              id: 1
+              causaleIvaId: 1
+              gestioneArticolo: Standard
+              codice: ART001
+              nomeBreve: Cacciavite
+              nome: Cacciavite a croce
+              contoRawVendita: 40.05.001
+              barCode: "8001234567890"
+              gruppoMerceologicoId: 1
+              costoMedio: 9.2
+              dataInserimento: 2000-01-23T04:56:07.000+00:00
+              categoriaMerceologica:
+                nome: Calzature
+                id: 1
+                concurrencyToken: 12345
+              marcaId: 1
+              contoRawAcquisto: 60.05.001
+              produttoreId: 1
+              concurrencyToken: 12345
+              articoloComposto: false
+            provvigioneAgente: 5.0
+            prestazioneId: 1
+            id: 1
+            concurrencyToken: 12345
+          id: 1
+          tipoListino: Vendite
+          concurrencyToken: 12345
+          ivaInclusa: true
+      properties:
+        listino:
+          $ref: '#/components/schemas/Listino'
+        avvisi:
+          description: "Avvisi della procedura, da mostrare all'utente."
+          example:
+          - 12 articoli erano già nel listino.
+          items:
+            type: string
+          nullable: true
+          type: array
+      type: object
+    ListinoComputeSconti:
+      additionalProperties: false
+      description: |-
+        Parametri della procedura `Sconti`: i quattro sconti da assegnare a ogni riga, come
+        frazione (`0.10` corrisponde al 10%).
+      example:
+        sconto2: 0.05
+        sconto3: 0.0
+        sconto4: 0.0
+        sconto1: 0.1
+      properties:
+        sconto1:
+          description: Primo sconto.
+          example: 0.1
+          format: double
+          type: number
+        sconto2:
+          description: Secondo sconto.
+          example: 0.05
+          format: double
+          type: number
+        sconto3:
+          description: Terzo sconto.
+          example: 0.0
+          format: double
+          type: number
+        sconto4:
+          description: Quarto sconto.
+          example: 0.0
+          format: double
+          type: number
       type: object
     Magazzino:
       additionalProperties: false
